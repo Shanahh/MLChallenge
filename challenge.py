@@ -6,8 +6,11 @@ from util import store_predictions
 from util import segment_with_knn
 from util import visualize
 
+######### Training dataset
 
-######### Training dataset :3
+test_mode = True
+image_number = 0
+print("Test mode active: " + str(test_mode))
 
 # Load training dataset
 images_train, scrib_train, gt_train, fnames_train, palette = load_dataset(
@@ -17,11 +20,22 @@ images_train, scrib_train, gt_train, fnames_train, palette = load_dataset(
 # Inference
 # Create a numpy array of size num_train x 375 x 500, a stack of all the
 # segmented images. 1 = foreground, 0 = background.
-pred_train = np.stack(
-    [segment_with_knn(image, scribble, k=3)
-     for image, scribble in zip(images_train, scrib_train)],
-    axis=0
-)
+print("Started predicting...")
+if not test_mode:
+    pred_train = np.stack(
+        [segment_with_knn(image, scribble, k=3)
+         for image, scribble in zip(images_train, scrib_train)],
+        axis=0
+    )
+else:
+    img = images_train[image_number]
+    scrib = scrib_train[image_number]
+    pred_train = np.stack(
+        [segment_with_knn(img, scrib, k=3)],
+        axis=0
+    )
+
+print("Stopped predicting...")
 
 # Storing Predictions
 store_predictions(
@@ -29,7 +43,10 @@ store_predictions(
 )
 
 # Visualizing model performance
-vis_index = np.random.randint(images_train.shape[0])
+if not test_mode:
+    vis_index = np.random.randint(images_train.shape[0])
+else:
+    vis_index = image_number
 visualize(
     images_train[vis_index], scrib_train[vis_index],
     gt_train[vis_index], pred_train[vis_index]
@@ -46,12 +63,21 @@ images_test, scrib_test, fnames_test = load_dataset(
 # Inference
 # Create a numpy array of size num_test x 375 x 500, a stack of all the 
 # segmented images. 1 = foreground, 0 = background.
-pred_test = np.stack(
-    [segment_with_knn(image, scribble, k=3)
-     for image, scribble in zip(images_test, scrib_test)],
-    axis=0
-)
+if not test_mode:
+    pred_test = np.stack(
+        [segment_with_knn(image, scribble, k=3)
+         for image, scribble in zip(images_test, scrib_test)],
+        axis=0
+    )
+else:
+    img = images_test[image_number]
+    scrib = scrib_test[image_number]
+    pred_test = np.stack(
+        [segment_with_knn(img, scrib, k=3)],
+        axis=0
+    )
 
+print("Storing predictions...")
 # Storing segmented images for test dataset.
 store_predictions(
     pred_test, "dataset/test", "predictions", fnames_test, palette
