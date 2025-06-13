@@ -7,7 +7,7 @@ from util import segment_with_knn
 from util import visualize
 
 
-######### Training dataset
+######### Training dataset :3
 
 # Load training dataset
 images_train, scrib_train, gt_train, fnames_train, palette = load_dataset(
