@@ -9,7 +9,7 @@ from util import visualize
 ######### Training dataset
 
 test_mode = True
-image_number = 0
+image_number = 1
 print("Test mode active: " + str(test_mode))
 
 # Load training dataset
@@ -46,7 +46,7 @@ store_predictions(
 if not test_mode:
     vis_index = np.random.randint(images_train.shape[0])
 else:
-    vis_index = image_number
+    vis_index = 0
 visualize(
     images_train[vis_index], scrib_train[vis_index],
     gt_train[vis_index], pred_train[vis_index]
