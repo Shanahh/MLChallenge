@@ -6,11 +6,13 @@ from util import store_predictions
 from util import segment_with_knn
 from util import visualize
 
-######### Training dataset
+######### Just for testing purposes
 
 test_mode = True
-image_number = 1
+image_number = 5
 print("Test mode active: " + str(test_mode))
+
+######### Training dataset
 
 # Load training dataset
 images_train, scrib_train, gt_train, fnames_train, palette = load_dataset(
@@ -20,7 +22,7 @@ images_train, scrib_train, gt_train, fnames_train, palette = load_dataset(
 # Inference
 # Create a numpy array of size num_train x 375 x 500, a stack of all the
 # segmented images. 1 = foreground, 0 = background.
-print("Started predicting...")
+print("Start prediction train data...")
 if not test_mode:
     pred_train = np.stack(
         [segment_with_knn(image, scribble, k=3)
@@ -35,7 +37,7 @@ else:
         axis=0
     )
 
-print("Stopped predicting...")
+print("Store prediction train data...")
 
 # Storing Predictions
 store_predictions(
@@ -45,13 +47,16 @@ store_predictions(
 # Visualizing model performance
 if not test_mode:
     vis_index = np.random.randint(images_train.shape[0])
+    visualize(
+        images_train[vis_index], scrib_train[vis_index],
+        gt_train[vis_index], pred_train[vis_index]
+    )
 else:
-    vis_index = 0
-visualize(
-    images_train[vis_index], scrib_train[vis_index],
-    gt_train[vis_index], pred_train[vis_index]
-)
-
+    vis_index = image_number
+    visualize(
+        images_train[vis_index], scrib_train[vis_index],
+        gt_train[vis_index], pred_train[0]
+    )
 
 ######### Test dataset
 
@@ -63,6 +68,7 @@ images_test, scrib_test, fnames_test = load_dataset(
 # Inference
 # Create a numpy array of size num_test x 375 x 500, a stack of all the 
 # segmented images. 1 = foreground, 0 = background.
+print("Start prediction test data...")
 if not test_mode:
     pred_test = np.stack(
         [segment_with_knn(image, scribble, k=3)
@@ -77,7 +83,8 @@ else:
         axis=0
     )
 
-print("Storing predictions...")
+print("Store prediction test data...")
+
 # Storing segmented images for test dataset.
 store_predictions(
     pred_test, "dataset/test", "predictions", fnames_test, palette
