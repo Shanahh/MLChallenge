@@ -9,7 +9,7 @@ from util import visualize
 ######### Just for testing purposes
 
 test_mode = True
-image_number = 5
+image_number = 2
 print("Test mode active: " + str(test_mode))
 
 ######### Training dataset
