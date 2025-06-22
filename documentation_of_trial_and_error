@@ -1,24 +1,70 @@
 Niels:
 
-First attempt:
-    Method:
-        Multi logistic regression model with manual feature selection.
-        Training data points were entire images
-        Feature matrix compression was required using a PCA to avoid mem alloc errors
-        Used the entire training set for training -> no possibility of evaluating model performance
-        Not really used regularization
-    Conclusions:
-        Results on training data comparable to KNN
-        Results on test data incredibly poor / unrecognizable
-        Model overfitted massively
-    For the next approach (after informing a bit more about image segmentation:)
-        - Use Aggressive Data Augmentation (virtually get more training data at runtime by visually manipulating images)
-        - Use a (lightweight / not too deep) CNN
-        - Better validation / model evaluation by splitting test
-        - Split labelled data into training + validation set
-        - Use proper regularization
+First attempt (Naive Linear Model):
 
-Second attempt: #TO DO
+Method:
+    Multi logistic regression model with manual feature selection.
+    Training data points were entire images
+    Feature matrix compression was required using a PCA to avoid mem alloc errors
+    Used the entire training set for training -> no possibility of evaluating model performance
+    Not really used regularization
+Conclusions:
+    Results on training data comparable to KNN
+    Results on test data incredibly poor / unrecognizable
+    Model overfitted massively
+For the next approach (after informing a bit more about image segmentation:)
+    - Use Aggressive Data Augmentation (virtually get more training data at runtime by visually manipulating images)
+    - Use a (lightweight / not too deep) CNN
+    - Better validation / model evaluation by splitting test
+    - Split labelled data into training + validation set
+    - Use proper regularization
 
+Second attempt (CNN):
+
+Method:
+    Neural Network:
+        - CNN in U-Net architecture style (using PyTorch) self-built for hyperparameter tuning
+        - Building plan: (Images padded from 375 x 500 to 512 x 512)
+
+        - Input Layer: 4 channels RBG + scribbles
+        - Encoder Block 1
+           - Conv2d (3x3, padding=1) + BatchNorm + ReLU, Channels: 4 -> 16, Output: 512x512
+           - Conv2d (3x3, padding=1) + BatchNorm + ReLU, Channels: 16 -> 16, Output: 512x512
+           - MaxPool2d (2x2, stride=2), Output: 256x256
+
+        - Encoder Block 2
+            - Conv2d (3x3, padding=1) + BatchNorm + ReLU, Channels: 16 -> 32, Output: 256x256
+            - Conv2d (3x3, padding=1) + BatchNorm + ReLU, Channels: 32 -> 32, Output: 256x256
+            - MaxPool2d (2x2, stride=2), Output: 128x128
+
+        - Encoder Block 3
+           - Conv2d (3x3, padding=1) + BatchNorm + ReLU, Channels: 32 -> 64, Output: 128x128
+
+        - Decoder Block 3
+           - Conv2d (3x3, padding=1) + BatchNorm + ReLU, Channels: 64 -> 64, Output: 128x128
+           - ConvTranspose2d (2x2 kernel, stride=2), Channels: 64 -> 32, Output: 256x256
+
+        - Decoder Block 2
+           - Concatenate skip connection from Encoder Block 2 (32 channels) -> 32 + 32 = 64 channels
+           - Conv2d (3x3, padding=1) + BatchNorm + ReLU, Channels: 64 -> 32, Output: 256x256
+           - Conv2d (3x3, padding=1) + BatchNorm + ReLU, Channels: 32 -> 32, Output: 256x256
+           - ConvTranspose2d (2x2 kernel, stride=2), Channels: 32 -> 16, Output: 512x512
+
+        - Decoder Block 1
+           - Concatenate skip connection from Encoder Block 1 (Channels: 16 + 16 = 32)
+           - Conv2d (3x3, padding=1) + BatchNorm + ReLU, Channels: 32 -> 16, Output: 512x512
+           - Conv2d (3x3, padding=1) + BatchNorm + ReLU, Channels: 16 -> 16, Output: 512x512
+        - Final Layer
+           - Conv2d (1x1 kernel), Channels: 16 -> 2, Output: 512x512
+
+        => 13 convolution layers total => hopefully good fit considering data set size
+        - can still add regularization
+
+    Data Augmentation per image: (Using library albumentations)
+        Original image (1x)
+        Random crop + resize (1x)
+        Horizontal flip (1x)
+        Random Slight rotation (±15°) (1x)
+        Color modification (brightness, contrast, saturation, etc.) (1x)
 
 
