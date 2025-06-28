@@ -1,4 +1,6 @@
 from typing import List, Tuple
+
+import cv2
 import numpy as np
 import albumentations as A
 import os
@@ -6,8 +8,8 @@ from PIL import Image
 from util import load_dataset
 
 # constants
-IMG_ORIG_WIDTH = 375
-IMG_ORIG_HEIGHT = 500
+IMG_ORIG_WIDTH = 500
+IMG_ORIG_HEIGHT = 375
 
 def train_test_split_dataset(
         images: np.ndarray,
@@ -56,17 +58,32 @@ def train_test_split_dataset(
         (test_images, test_scribbles, test_gt),
     )
 
-def pad_to_512(img: np.ndarray) -> np.ndarray:
+def pad_to_512(img: np.ndarray, pad_value: int = 0) -> np.ndarray:
+    """
+        Pads an image or mask to 512x512 with the given pad_value.
+        The padding is centered (equal on all sides as much as possible).
+
+        :param img: The input image or mask as a NumPy array.
+        :param pad_value: Value to use for padding.
+                          Use 0 for images and ground truths, 255 for scribbles.
+        :return: Padded image or mask.
+        """
     h, w = img.shape[:2]
-    pad_h = 512 - h
-    pad_w = 512 - w
-    if pad_h < 0 or pad_w < 0:
-        raise ValueError("Image dimensions larger than 512 after augmentation.")
-    if img.ndim == 3:
-        padded = np.pad(img, ((0, pad_h), (0, pad_w), (0, 0)), mode='constant', constant_values=0)
+    pad_h = max(0, 512 - h)
+    pad_w = max(0, 512 - w)
+    top = pad_h // 2
+    bottom = pad_h - top
+    left = pad_w // 2
+    right = pad_w - left
+
+    if img.ndim == 2:  # grayscale or mask
+        pad_val = (pad_value,)
+    elif img.ndim == 3 and img.shape[2] == 3:  # RGB image
+        pad_val = (pad_value, pad_value, pad_value)
     else:
-        padded = np.pad(img, ((0, pad_h), (0, pad_w)), mode='constant', constant_values=0)
-    return padded
+        raise ValueError(f"Unexpected image shape: {img.shape}")
+
+    return cv2.copyMakeBorder(img, top, bottom, left, right, borderType=cv2.BORDER_CONSTANT, value=pad_val)
 
 def augment_triplet(
     image: np.ndarray,
@@ -84,8 +101,8 @@ def augment_triplet(
     h, w = image.shape[:2]  # h=375, w=500
 
     transform_crop = A.Compose([
-        A.RandomResizedCrop(height=int(h * 0.8), width=int(w * 0.8), scale=(0.8, 1.0), ratio=(0.9, 1.1), p=1.0),
-        A.Resize(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH),  # resize back to original size after crop
+        A.RandomResizedCrop(size=(int(h * 0.8), int(w * 0.8)), scale=(0.8, 1.0), ratio=(0.9, 1.1), p=1.0),
+        A.Resize(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH),
     ])
 
     transform_flip = A.Compose([
@@ -105,23 +122,23 @@ def augment_triplet(
 
     # Original (just pad to 512x512)
     orig_img = pad_to_512(image)
-    orig_scribble = pad_to_512(scribble)
+    orig_scribble = pad_to_512(scribble, pad_value=255)
     orig_gt = pad_to_512(ground_truth)
 
     # Augmented versions
     crop = transform_crop(image=image, masks=[scribble, ground_truth])
     crop_img = pad_to_512(crop['image'])
-    crop_scribble = pad_to_512(crop['masks'][0])
+    crop_scribble = pad_to_512(crop['masks'][0], pad_value=255)
     crop_gt = pad_to_512(crop['masks'][1])
 
     flip = transform_flip(image=image, masks=[scribble, ground_truth])
     flip_img = pad_to_512(flip['image'])
-    flip_scribble = pad_to_512(flip['masks'][0])
+    flip_scribble = pad_to_512(flip['masks'][0], pad_value=255)
     flip_gt = pad_to_512(flip['masks'][1])
 
     rotate = transform_rotate(image=image, masks=[scribble, ground_truth])
     rotate_img = pad_to_512(rotate['image'])
-    rotate_scribble = pad_to_512(rotate['masks'][0])
+    rotate_scribble = pad_to_512(rotate['masks'][0], pad_value=255)
     rotate_gt = pad_to_512(rotate['masks'][1])
 
     # Color jitter applied only on image, masks resized separately to original size and padded
@@ -130,7 +147,7 @@ def augment_triplet(
 
     # Resize masks back to original size then pad (since no geometric transform for color)
     color_scribble = A.Resize(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH)(image=scribble)['image']
-    color_scribble = pad_to_512(color_scribble)
+    color_scribble = pad_to_512(color_scribble, pad_value=255)
 
     color_gt = A.Resize(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH)(image=ground_truth)['image']
     color_gt = pad_to_512(color_gt)
@@ -153,16 +170,17 @@ def save_triplets(triplets: List[Tuple[np.ndarray, np.ndarray, np.ndarray]],
     """
     idx = start_idx
     for triplet in triplets:
-        filename = f"{idx:04d}.jpg"
+        filename_img = f"{idx:04d}.jpg"
+        filename_mask = f"{idx:04d}.png"
 
         img_pil = Image.fromarray(triplet[0])
         scrib_pil = Image.fromarray(triplet[1].astype(np.uint8))
         gt_pil = Image.fromarray(triplet[2].astype(np.uint8), mode='P')
         gt_pil.putpalette(palette)
 
-        img_pil.save(os.path.join(img_path, filename), quality=95)
-        scrib_pil.save(os.path.join(scrib_path, filename), quality=95)
-        gt_pil.save(os.path.join(gt_path, filename), quality=95)
+        img_pil.save(os.path.join(img_path, filename_img), quality=95)
+        scrib_pil.save(os.path.join(scrib_path, filename_mask))
+        gt_pil.save(os.path.join(gt_path, filename_mask))
 
         idx += 1
     return idx
@@ -173,13 +191,17 @@ def augment_and_save(source_path: str, save_path: str, save_dir: str):
     @param source_path: path to the directory containing images, scribbles, ground truths
     """
     total_path = os.path.join(save_path, save_dir)
-    if not os.path.exists(total_path):
-        os.makedirs(total_path)
-        img_path = os.path.join(total_path, "images")
-        scrib_path = os.path.join(total_path, "scribbles")
-        gt_path = os.path.join(total_path, "ground_truth")
+    img_path = os.path.join(total_path, "images")
+    scrib_path = os.path.join(total_path, "scribbles")
+    gt_path = os.path.join(total_path, "ground_truth")
+    if not os.path.exists(img_path):
+        os.makedirs(img_path)
+    if not os.path.exists(scrib_path):
+        os.makedirs(scrib_path)
+    if not os.path.exists(gt_path):
+        os.makedirs(gt_path)
 
-    images, scribbles, ground_truths, fnames_train, palette = load_dataset(
+    images, scribbles, ground_truths, _, palette = load_dataset(
         source_path, "images", "scribbles", "ground_truth"
     )
 
@@ -189,11 +211,7 @@ def augment_and_save(source_path: str, save_path: str, save_dir: str):
     N_ground_truths, *_ = ground_truths.shape
     assert N_images == N_scribbles == N_ground_truths
 
+    next_id = 0 # image ID for saving
     for (img, scrib, gt) in zip(images, scribbles, ground_truths):
         augmented_triplets = augment_triplet(img, scrib, gt)
-
-
-
-
-
-
+        next_id = save_triplets(augmented_triplets, img_path, scrib_path, gt_path, palette, next_id)
