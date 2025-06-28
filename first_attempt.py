@@ -172,7 +172,7 @@ pred_train = np.stack(results_train, axis=0)
 
 print("Store training predictions...")
 store_predictions(
-    pred_train, "dataset/training/predictions", "first_attempt", fnames_test, palette
+    pred_train, "dataset/training/predictions", "first_attempt", fnames_train, palette
 )
 
 print("Make prediction on test data...")
