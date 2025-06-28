@@ -1,5 +1,5 @@
 from typing import List, Tuple
-
+import random
 import cv2
 import numpy as np
 import albumentations as A
@@ -99,22 +99,32 @@ def augment_triplet(
     """
 
     h, w = image.shape[:2]  # h=375, w=500
-
+    # random crop
     transform_crop = A.Compose([
         A.RandomResizedCrop(size=(int(h * 0.8), int(w * 0.8)), scale=(0.8, 1.0), ratio=(0.9, 1.1), p=1.0),
         A.Resize(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH),
     ])
 
+    # mirror
     transform_flip = A.Compose([
         A.HorizontalFlip(p=1.0),
         A.Resize(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH),  # keep original size
     ])
 
-    transform_rotate = A.Compose([
-        A.Rotate(limit=15, border_mode=0, p=1.0),
+    # random rotate, scribbles need different filling!
+    angle = random.uniform(-15, 15)
+    # for img and gt
+    transform_rotate_img = A.Compose([
+        A.Rotate(limit=(angle, angle), border_mode=0, fill=0, p=1.0), # fill with black
+        A.Resize(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH),  # keep original size
+    ])
+    # for scribble
+    transform_rotate_scrib = A.Compose([
+        A.Rotate(limit=(angle, angle), border_mode=0, fill=255, p=1.0),  # fill with white
         A.Resize(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH),  # keep original size
     ])
 
+    # color jitter
     transform_color = A.Compose([
         A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0, p=1.0),
         # No resizing here needed for color-only transform because image is not spatially changed
@@ -136,10 +146,12 @@ def augment_triplet(
     flip_scribble = pad_to_512(flip['masks'][0], pad_value=255)
     flip_gt = pad_to_512(flip['masks'][1])
 
-    rotate = transform_rotate(image=image, masks=[scribble, ground_truth])
-    rotate_img = pad_to_512(rotate['image'])
-    rotate_scribble = pad_to_512(rotate['masks'][0], pad_value=255)
-    rotate_gt = pad_to_512(rotate['masks'][1])
+    rotate_img = transform_rotate_img(image=image)['image']
+    rotate_scribble = transform_rotate_scrib(image=scribble)['image']
+    rotate_gt = transform_rotate_img(image=ground_truth)['image']
+    rotate_img = pad_to_512(rotate_img)
+    rotate_scribble = pad_to_512(rotate_scribble, pad_value=255)
+    rotate_gt = pad_to_512(rotate_gt)
 
     # Color jitter applied only on image, masks resized separately to original size and padded
     color_img = transform_color(image=image)['image']
