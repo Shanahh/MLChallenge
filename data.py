@@ -6,6 +6,7 @@ import albumentations as A
 import os
 from PIL import Image
 from util import load_dataset
+import matplotlib.pyplot as plt
 
 # constants
 IMG_ORIG_WIDTH = 500
@@ -227,3 +228,38 @@ def augment_and_save(source_path: str, save_path: str, save_dir: str):
     for (img, scrib, gt) in zip(images, scribbles, ground_truths):
         augmented_triplets = augment_triplet(img, scrib, gt)
         next_id = save_triplets(augmented_triplets, img_path, scrib_path, gt_path, palette, next_id)
+
+def save_training_plots(save_dir, train_losses, val_losses, obj_ious, bkg_ious, mean_ious):
+    """
+    Saves plots during model training for different statistics:
+    training losses,
+    validation losses,
+    object ious,
+    background ious,
+    mean ious
+    """
+    os.makedirs(save_dir, exist_ok=True)
+    epochs = range(1, len(train_losses) + 1)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(epochs, train_losses, 'b-', label='Training Loss')
+    plt.plot(epochs, val_losses, 'r-', label='Validation Loss')
+    plt.title('Loss over Epochs')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(os.path.join(save_dir, 'loss_plot.pdf'))
+    plt.close()
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(epochs, obj_ious, 'g-', label='Object IoU')
+    plt.plot(epochs, bkg_ious, 'c-', label='Background IoU')
+    plt.plot(epochs, mean_ious, 'm-', label='Mean IoU')
+    plt.title('IoU scores over Epochs')
+    plt.xlabel('Epoch')
+    plt.ylabel('IoU')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(os.path.join(save_dir, 'iou_plot.pdf'))
+    plt.close()

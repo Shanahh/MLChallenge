@@ -110,7 +110,6 @@ class DecoderBlockFinal(nn.Module):
     """
     Generic Decoder Block for the U-Net architecture with 2 convolutional layers
     Instead of having an up-convolutional layer, it includes the final layer with 1x1 convolution
-
     """
     def __init__(self, in_channels):
         super().__init__()
