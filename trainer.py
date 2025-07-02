@@ -1,20 +1,18 @@
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader, random_split
-import matplotlib.pyplot as plt
-import os
-
+from data import save_training_plots, save_model
 from evaluation import *
 
 # constants
 TRAIN_LOCATION_GPU = "cuda"
 TRAIN_LOCATION_CPU = "cpu"
-MODEL_PATH = "models/best_model.pth"
+MODEL_DIR_PATH = "models"
+PLOTS_DIR_PATH = "training_plots"
+NUM_BARS = 30
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, num_epochs):
     """
-    Trains the given model and returns the training loss of the respective epoch
+    Trains the given model and saves the best model and all statistics collected on the validation set, such as training loss,
+    validation loss, and IoU scores.
     """
     use_cuda = torch.cuda.is_available()
     device = torch.device(TRAIN_LOCATION_GPU if use_cuda else TRAIN_LOCATION_CPU)
@@ -29,7 +27,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
     for epoch in range(num_epochs):
         print(f"Epoch {epoch + 1}/{num_epochs}")
-        print("-" * 30)
+        print("-" * NUM_BARS)
         # training
         epoch_train_loss = training_phase(model, train_loader, criterion, optimizer, device)
         train_losses.append(epoch_train_loss)
@@ -45,14 +43,17 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         print(f"Train Loss: {epoch_train_loss:.4f} | Val Loss: {epoch_val_loss:.4f} | "
               f"Obj IoU: {epoch_val_obj_iou:.4f} | Bkg IoU: {epoch_val_bkg_iou:.4f} | Mean IoU: {epoch_val_mean_iou:.4f}")
 
-        # save model if it achieves the best results on the training set
+        # save model if it achieves the current best results on the validation set
         if epoch_val_loss < best_val_loss:
             best_val_loss = epoch_val_loss
-            save_model(model)
+            save_model(model, MODEL_DIR_PATH)
 
         # optimize learning rate if we have a scheduler
         if scheduler:
             scheduler.step(epoch_val_loss)
+
+    print("Training finished - saving results...")
+    save_training_plots(PLOTS_DIR_PATH, train_losses, val_losses, val_obj_ious, val_bkg_ious, val_mean_ious)
 
 def training_phase(model, train_loader, criterion, optimizer, device):
     """
@@ -79,7 +80,7 @@ def training_phase(model, train_loader, criterion, optimizer, device):
 def validation_phase(model, val_loader, criterion, device):
     """
     Executes validation of the current epoch
-    Returns the mean of each validation_loss, object IoU, background IoU, mean IoU
+    Returns the mean of each: validation_loss, object IoU, background IoU, mean IoU
     """
     model.eval()
     val_loss_sum = 0.0
@@ -112,9 +113,3 @@ def validation_phase(model, val_loader, criterion, device):
     epoch_mean_iou = val_mean_iou / len(val_loader.dataset)
     return epoch_val_loss, epoch_obj_iou, epoch_bkg_iou, epoch_mean_iou
 
-def save_model(model, filepath=MODEL_PATH):
-    """
-    Saves the given model to the given filepath
-    """
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
-    torch.save(model.state_dict(), filepath)

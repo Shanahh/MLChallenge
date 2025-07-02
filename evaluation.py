@@ -81,5 +81,4 @@ def model_output_to_mask(output_tensor, threshold=0.5):
     output_np = output_tensor.detach().cpu().numpy()
     # construct mask
     binary_mask = (output_np >= threshold).astype(np.uint8)
-
     return binary_mask

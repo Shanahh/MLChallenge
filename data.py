@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Tuple
 import random
 import cv2
@@ -7,6 +8,7 @@ import os
 from PIL import Image
 from util import load_dataset
 import matplotlib.pyplot as plt
+import torch
 
 # constants
 IMG_ORIG_WIDTH = 500
@@ -241,6 +243,8 @@ def save_training_plots(save_dir, train_losses, val_losses, obj_ious, bkg_ious, 
     os.makedirs(save_dir, exist_ok=True)
     epochs = range(1, len(train_losses) + 1)
 
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
     plt.figure(figsize=(10, 6))
     plt.plot(epochs, train_losses, 'b-', label='Training Loss')
     plt.plot(epochs, val_losses, 'r-', label='Validation Loss')
@@ -249,7 +253,7 @@ def save_training_plots(save_dir, train_losses, val_losses, obj_ious, bkg_ious, 
     plt.ylabel('Loss')
     plt.legend()
     plt.grid(True)
-    plt.savefig(os.path.join(save_dir, 'loss_plot.pdf'))
+    plt.savefig(os.path.join(save_dir, f"loss_plot_{timestamp}.pdf"))
     plt.close()
 
     plt.figure(figsize=(10, 6))
@@ -261,5 +265,29 @@ def save_training_plots(save_dir, train_losses, val_losses, obj_ious, bkg_ious, 
     plt.ylabel('IoU')
     plt.legend()
     plt.grid(True)
-    plt.savefig(os.path.join(save_dir, 'iou_plot.pdf'))
+    plt.savefig(os.path.join(save_dir, f"iou_plot_{timestamp}.pdf"))
     plt.close()
+
+def save_model(model, save_dir):
+    """
+    Saves the given model in the specified directory with a timestamped filename.
+
+    Args:
+        model: The PyTorch model to save.
+        save_dir: Directory path where the model file will be saved.
+    """
+    os.makedirs(save_dir, exist_ok=True)
+
+    # Generate timestamp string
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    # Construct filename with timestamp and extension
+    filename = f"model_{timestamp}.pth"
+
+    # Full path for saving
+    full_path = os.path.join(save_dir, filename)
+
+    # Save model state dict
+    torch.save(model.state_dict(), full_path)
+
+    print(f"Model saved to {full_path}")
