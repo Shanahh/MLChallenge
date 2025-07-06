@@ -1,6 +1,9 @@
+import os
 import torch
 from data import save_training_plots, save_model, remove_padding_gt
 from evaluation import *
+from model import UNet3
+from util import store_predictions
 
 # constants
 TRAIN_LOCATION_GPU = "cuda"
@@ -19,6 +22,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
     model = model.to(device)
 
     best_val_loss = float('inf')
+    best_model_name = ""
     train_losses = []
     val_losses = []
     val_obj_ious = []
@@ -46,10 +50,10 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         print(f"Train Loss: {epoch_train_loss:.4f} | Val Loss: {epoch_val_loss:.4f} | "
               f"Obj IoU: {epoch_val_obj_iou:.4f} | Bkg IoU: {epoch_val_bkg_iou:.4f} | Mean IoU: {epoch_val_mean_iou:.4f}")
 
-        # save model if it achieves the current best results on the validation set
+        # save model if it achieves the current best results on the validation set in terms of validation loss
         if epoch_val_loss < best_val_loss:
             best_val_loss = epoch_val_loss
-            save_model(model, MODEL_DIR_PATH)
+            best_model_name = save_model(model, MODEL_DIR_PATH)
 
         # optimize learning rate if we have a scheduler
         if scheduler:
@@ -57,6 +61,8 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
     print("Training finished - saving results...")
     save_training_plots(PLOTS_DIR_PATH, train_losses, val_losses, val_obj_ious, val_bkg_ious, val_mean_ious)
+
+    return best_model_name
 
 def training_phase(model, train_loader, criterion, optimizer, device):
     """
@@ -118,4 +124,38 @@ def validation_phase(model, val_loader, criterion, device):
     epoch_bkg_iou = val_bkg_iou / len(val_loader.dataset)
     epoch_mean_iou = val_mean_iou / len(val_loader.dataset)
     return epoch_val_loss, epoch_obj_iou, epoch_bkg_iou, epoch_mean_iou
+
+
+def predict_and_save(model, model_path, save_dir_path, save_dir, data_loader, fnames_test, palette):
+    """
+    Makes predictions for the data in the data loader and stores them in a folder in the given path.
+    """
+    device = TRAIN_LOCATION_GPU if torch.cuda.is_available() else TRAIN_LOCATION_CPU
+    os.makedirs(save_dir, exist_ok=True)
+    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.to(device)
+    model.eval()
+
+    print(f"Model loaded from {model_path}, running and saving prediction on {len(data_loader.dataset)} samples...")
+
+    with torch.no_grad():
+        prediction_list = []
+        for inputs, _ in data_loader:
+            inputs = inputs.to(device)  # shape: [B, 4, H, W]
+            outputs = model(inputs)  # shape: [B, 1, H, W], model already outputs probabilities
+            predictions = (outputs > 0.5).float()  # binarize
+
+            # Save predictions (each sample)
+            for i in range(predictions.size(0)):
+                pred_mask = predictions[i, 0]  # shape: [H, W]
+                mask_np = (pred_mask.cpu().numpy() * 255).astype(np.uint8)
+                prediction_list.append(mask_np)
+
+        pred_np = np.stack(prediction_list, axis=0)
+
+        store_predictions(
+            pred_np, save_dir_path, save_dir, fnames_test, palette
+        )
+
+    print("Predictions saved.")
 

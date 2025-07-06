@@ -360,3 +360,5 @@ def save_model(model, save_dir):
     torch.save(model.state_dict(), full_path)
 
     print(f"Model saved to {full_path}")
+
+    return filename

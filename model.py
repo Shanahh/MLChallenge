@@ -10,9 +10,39 @@ STRIDE_RESAMPLE = 2
 PADDING = 1
 FINAL_CHANNELS = 1
 
-class UNet(nn.Module):
+class UNet4(nn.Module):
     """
-    The UNet.
+    The UNet (with 4 Encoder and 4 Decoder Blocks)
+    """
+    def __init__(self):
+        super().__init__()
+        # encoder blocks
+        self.enc1 = EncoderBlockGeneric(4, 16)
+        self.enc2 = EncoderBlockGeneric(16, 32)
+        self.enc3 = EncoderBlockGeneric(32, 64)
+        self.enc4 = EncoderBlockBottleneck(64, 128)
+        # decoder blocks
+        self.dec4 = DecoderBlockBottleneck(128, 64)
+        self.dec3 = DecoderBlockGeneric(64, 32)
+        self.dec2 = DecoderBlockGeneric(32, 16)
+        self.dec1 = DecoderBlockFinal(16)
+
+    def forward(self, x):
+        # use encoders and save skip connections
+        x, skip1 = self.enc1(x)
+        x, skip2 = self.enc2(x)
+        x, skip3 = self.enc3(x)
+        x = self.enc4(x)
+        # use decoders and use skip connections
+        x = self.dec4(x)
+        x = self.dec3(x, skip3)
+        x = self.dec2(x, skip2)
+        x = self.dec1(x, skip1)
+        return x
+
+class UNet3(nn.Module):
+    """
+    The UNet (with 3 Encoder and 3 Decoder Blocks)
     """
     def __init__(self):
         super().__init__()
@@ -33,6 +63,28 @@ class UNet(nn.Module):
         # use decoders and use skip connections
         x = self.dec3(x)
         x = self.dec2(x, skip2)
+        x = self.dec1(x, skip1)
+        return x
+
+class UNet2(nn.Module):
+    """
+    The UNet (with 2 Encoder and 2 Decoder Blocks)
+    """
+    def __init__(self):
+        super().__init__()
+        # encoder blocks
+        self.enc1 = EncoderBlockGeneric(4, 16)
+        self.enc2 = EncoderBlockBottleneck(16, 32)
+        # decoder blocks
+        self.dec2 = DecoderBlockBottleneck(32, 16)
+        self.dec1 = DecoderBlockFinal(16)
+
+    def forward(self, x):
+        # use encoders and save skip connections
+        x, skip1 = self.enc1(x)
+        x = self.enc2(x)
+        # use decoders and use skip connections
+        x = self.dec2(x)
         x = self.dec1(x, skip1)
         return x
 
