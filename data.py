@@ -13,7 +13,6 @@ import torch
 # constants
 IMG_ORIG_WIDTH = 500
 IMG_ORIG_HEIGHT = 375
-TRAIN_SET_SIZE = 0.85
 
 def train_test_split_dataset(
         images: np.ndarray,
