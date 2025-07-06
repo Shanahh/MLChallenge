@@ -1,5 +1,5 @@
 import torch
-from data import save_training_plots, save_model
+from data import save_training_plots, save_model, remove_padding_gt
 from evaluation import *
 
 # constants
@@ -101,7 +101,10 @@ def validation_phase(model, val_loader, criterion, device):
             # compute different IoU scores
             outputs_np = model_output_to_mask(outputs)
             masks_np = model_output_to_mask(masks)
-            obj_io_batch, bkg_iou_batch, mean_iou_batch = get_ious(masks_np, outputs_np)
+            # revert padding to not get incorrect background IoU scores
+            outputs_np_no_pad = remove_padding_gt(outputs_np)
+            masks_np_no_pad = remove_padding_gt(masks_np)
+            obj_io_batch, bkg_iou_batch, mean_iou_batch = get_ious(masks_np_no_pad, outputs_np_no_pad)
             # mean value needs to be multiplied with batch size again
             val_obj_iou += obj_io_batch * batch_size
             val_bkg_iou += bkg_iou_batch * batch_size

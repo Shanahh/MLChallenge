@@ -88,7 +88,43 @@ def pad_to_512(img: np.ndarray, pad_value: int = 0) -> np.ndarray:
 
     return cv2.copyMakeBorder(img, top, bottom, left, right, borderType=cv2.BORDER_CONSTANT, value=pad_val)
 
-def augment_triplet(
+def _remove_padding_gt(padded_img: np.ndarray) -> np.ndarray:
+    """
+    Removes padding from a single 512x512 ground truth mask to recover the original image shape.
+
+    :param padded_img: The padded gt (512x512).
+    :param original_shape: Tuple (h, w) representing the original image shape before padding.
+    :return: Cropped image of shape original_shape.
+    """
+    pad_h = max(0, 512 - IMG_ORIG_HEIGHT)
+    pad_w = max(0, 512 - IMG_ORIG_WIDTH)
+    top = pad_h // 2
+    left = pad_w // 2
+
+    # Crop the image
+    return padded_img[top:top + IMG_ORIG_HEIGHT, left:left + IMG_ORIG_WIDTH]
+
+def remove_padding_gt(padded_images: np.ndarray) -> np.ndarray:
+    """
+    Removes padding from multiple 512x512 ground truth masks
+    """
+    gts_no_padding = []
+    N = padded_images.shape[0]
+    for i in range(N):
+        gt_no_padding = _remove_padding_gt(padded_images[i])
+        gts_no_padding.append(gt_no_padding)
+    gts_no_padding_array = np.stack(gts_no_padding, axis=0)
+    return gts_no_padding_array
+
+def save_single_image(img: np.ndarray, img_path: str, filename: str = "test.jpg") -> None:
+    """
+    Save a single image (for testing only!)
+    """
+    os.makedirs(img_path, exist_ok=True)
+    img_pil = Image.fromarray(img)
+    img_pil.save(os.path.join(img_path, filename), quality=95)
+
+def _augment_triplet(
     image: np.ndarray,
     scribble: np.ndarray,
     ground_truth: np.ndarray,
@@ -178,7 +214,7 @@ def augment_triplet(
     return augmented_triplets
 
 
-def save_triplets(triplets: List[Tuple[np.ndarray, np.ndarray, np.ndarray]],
+def _save_triplets(triplets: List[Tuple[np.ndarray, np.ndarray, np.ndarray]],
                   img_path: str, scrib_path: str, gt_path: str, palette: List[int], start_idx: int = 0) -> int:
     """
     Saves a list of augmentation triplets
@@ -228,8 +264,8 @@ def augment_and_save(source_path: str, save_path: str, save_dir: str):
 
     next_id = 0 # image ID for saving
     for (img, scrib, gt) in zip(images, scribbles, ground_truths):
-        augmented_triplets = augment_triplet(img, scrib, gt)
-        next_id = save_triplets(augmented_triplets, img_path, scrib_path, gt_path, palette, next_id)
+        augmented_triplets = _augment_triplet(img, scrib, gt)
+        next_id = _save_triplets(augmented_triplets, img_path, scrib_path, gt_path, palette, next_id)
 
 def save_training_plots(save_dir, train_losses, val_losses, obj_ious, bkg_ious, mean_ious):
     """
