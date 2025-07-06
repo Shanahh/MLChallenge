@@ -124,12 +124,12 @@ def _validation_phase(model, val_loader, criterion, device):
     epoch_mean_iou = val_mean_iou / len(val_loader.dataset)
     return epoch_val_loss, epoch_obj_iou, epoch_bkg_iou, epoch_mean_iou
 
-def predict_and_save(model, model_path, save_dir_path, save_dir, data_loader, fnames, palette):
+def predict_and_save(model, model_path, save_dir_path, data_loader, fnames, palette):
     """
     Makes predictions for the data in the data loader and stores them in a folder in the given path.
     """
     device = TRAIN_LOCATION_GPU if torch.cuda.is_available() else TRAIN_LOCATION_CPU
-    os.makedirs(save_dir, exist_ok=True)
+    os.makedirs(save_dir_path, exist_ok=True)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.to(device)
     model.eval()
@@ -151,8 +151,9 @@ def predict_and_save(model, model_path, save_dir_path, save_dir, data_loader, fn
 
         pred_np = np.stack(prediction_list, axis=0)
 
+        save_dir_path_hd, save_dir = os.path.split(save_dir_path)
         store_predictions(
-            pred_np, save_dir_path, save_dir, fnames, palette
+            pred_np, save_dir_path_hd, save_dir, fnames, palette
         )
 
     print("Predictions saved.")

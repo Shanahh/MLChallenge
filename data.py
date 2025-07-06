@@ -7,8 +7,6 @@ import albumentations as A
 import os
 from PIL import Image
 from torch.utils.data import Dataset
-
-from util import load_dataset
 import matplotlib.pyplot as plt
 import torch
 
@@ -65,7 +63,7 @@ def train_test_split_dataset(
     )
 
 class SegmentationDataset(Dataset):
-    def __init__(self, images: list, scribbles: list, masks: list, transform=None):
+    def __init__(self, images, scribbles, masks, transform=None):
         """
         images, scribbles, masks are lists of numpy arrays.
         """
@@ -95,7 +93,7 @@ class SegmentationDataset(Dataset):
 
         return input_tensor, mask
 
-def pad_to_512(img: np.ndarray, pad_value: int = 0) -> np.ndarray:
+def _pad_to_512(img: np.ndarray, pad_value: int = 0) -> np.ndarray:
     """
         Pads an image or mask to 512x512 with the given pad_value.
         The padding is centered (equal on all sides as much as possible).
@@ -127,7 +125,6 @@ def _remove_padding_gt(padded_img: np.ndarray) -> np.ndarray:
     Removes padding from a single 512x512 ground truth mask to recover the original image shape.
 
     :param padded_img: The padded gt (512x512).
-    :param original_shape: Tuple (h, w) representing the original image shape before padding.
     :return: Cropped image of shape original_shape.
     """
     pad_h = max(0, 512 - IMG_ORIG_HEIGHT)
@@ -149,14 +146,6 @@ def remove_padding_gt(padded_images: np.ndarray) -> np.ndarray:
         gts_no_padding.append(gt_no_padding)
     gts_no_padding_array = np.stack(gts_no_padding, axis=0)
     return gts_no_padding_array
-
-def save_single_image(img: np.ndarray, img_path: str, filename: str = "test.jpg") -> None:
-    """
-    Save a single image (for testing only!)
-    """
-    os.makedirs(img_path, exist_ok=True)
-    img_pil = Image.fromarray(img)
-    img_pil.save(os.path.join(img_path, filename), quality=95)
 
 def _augment_triplet(
     image: np.ndarray,
@@ -204,38 +193,38 @@ def _augment_triplet(
     ])
 
     # Original (just pad to 512x512)
-    orig_img = pad_to_512(image)
-    orig_scribble = pad_to_512(scribble, pad_value=255)
-    orig_gt = pad_to_512(ground_truth)
+    orig_img = _pad_to_512(image)
+    orig_scribble = _pad_to_512(scribble, pad_value=255)
+    orig_gt = _pad_to_512(ground_truth)
 
     # Augmented versions
     crop = transform_crop(image=image, masks=[scribble, ground_truth])
-    crop_img = pad_to_512(crop['image'])
-    crop_scribble = pad_to_512(crop['masks'][0], pad_value=255)
-    crop_gt = pad_to_512(crop['masks'][1])
+    crop_img = _pad_to_512(crop['image'])
+    crop_scribble = _pad_to_512(crop['masks'][0], pad_value=255)
+    crop_gt = _pad_to_512(crop['masks'][1])
 
     flip = transform_flip(image=image, masks=[scribble, ground_truth])
-    flip_img = pad_to_512(flip['image'])
-    flip_scribble = pad_to_512(flip['masks'][0], pad_value=255)
-    flip_gt = pad_to_512(flip['masks'][1])
+    flip_img = _pad_to_512(flip['image'])
+    flip_scribble = _pad_to_512(flip['masks'][0], pad_value=255)
+    flip_gt = _pad_to_512(flip['masks'][1])
 
     rotate_img = transform_rotate_img(image=image)['image']
     rotate_scribble = transform_rotate_scrib(image=scribble)['image']
     rotate_gt = transform_rotate_img(image=ground_truth)['image']
-    rotate_img = pad_to_512(rotate_img)
-    rotate_scribble = pad_to_512(rotate_scribble, pad_value=255)
-    rotate_gt = pad_to_512(rotate_gt)
+    rotate_img = _pad_to_512(rotate_img)
+    rotate_scribble = _pad_to_512(rotate_scribble, pad_value=255)
+    rotate_gt = _pad_to_512(rotate_gt)
 
     # Color jitter applied only on image, masks resized separately to original size and padded
     color_img = transform_color(image=image)['image']
-    color_img = pad_to_512(color_img)
+    color_img = _pad_to_512(color_img)
 
     # Resize masks back to original size then pad (since no geometric transform for color)
     color_scribble = A.Resize(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH)(image=scribble)['image']
-    color_scribble = pad_to_512(color_scribble, pad_value=255)
+    color_scribble = _pad_to_512(color_scribble, pad_value=255)
 
     color_gt = A.Resize(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH)(image=ground_truth)['image']
-    color_gt = pad_to_512(color_gt)
+    color_gt = _pad_to_512(color_gt)
 
     augmented_triplets = [
         (orig_img, orig_scribble, orig_gt),
@@ -247,11 +236,10 @@ def _augment_triplet(
 
     return augmented_triplets
 
-
 def _save_triplets(triplets: List[Tuple[np.ndarray, np.ndarray, np.ndarray]],
                   img_path: str, scrib_path: str, gt_path: str, palette: List[int], start_idx: int = 0) -> int:
     """
-    Saves a list of augmentation triplets
+    Saves a list image, scribble and ground truth triplets.
     """
     idx = start_idx
     for triplet in triplets:
@@ -270,34 +258,38 @@ def _save_triplets(triplets: List[Tuple[np.ndarray, np.ndarray, np.ndarray]],
         idx += 1
     return idx
 
-def augment_and_save(source_path: str, save_path: str, save_dir: str, train_set_percentage = TRAIN_SET_SIZE):
+def _create_data_paths(save_path):
+    """
+    Given a path, creates and returns child paths for images, scribbles and ground truths
+    """
+    img_path = os.path.join(save_path, "images")
+    scrib_path = os.path.join(save_path, "scribbles")
+    gt_path = os.path.join(save_path, "ground_truth")
+    if not os.path.exists(img_path):
+        os.makedirs(img_path)
+    if not os.path.exists(scrib_path):
+        os.makedirs(scrib_path)
+    if not os.path.exists(gt_path):
+        os.makedirs(gt_path)
+    return img_path, scrib_path, gt_path
+
+def pad_and_save_data(images, scribbles, ground_truths, palette, save_path):
+    """
+    Saves validation data
+    """
+    img_path, scrib_path, gt_path = _create_data_paths(save_path)
+
+    images_padded = np.stack([_pad_to_512(img) for img in images], axis=0)
+    scribbles_padded = np.stack([_pad_to_512(scrib, pad_value=255) for scrib in scribbles], axis=0)
+    ground_truths_padded = np.stack([_pad_to_512(gt) for gt in ground_truths], axis=0)
+    padded_triplets = [(img, scrib, gt) for img, scrib, gt in zip(images_padded, scribbles_padded, ground_truths_padded)]
+    _save_triplets(padded_triplets, img_path, scrib_path, gt_path, palette)
+
+def augment_and_save_data(images, scribbles, ground_truths, palette, save_path):
     """
     Augments the training data according to the documentation and saves the resulting data
-    @param source_path: path to the directory containing images, scribbles, ground truths
     """
-    total_path = os.path.join(save_path, save_dir)
-    img_path_train = os.path.join(total_path, "train/images")
-    scrib_path_train = os.path.join(total_path, "train/scribbles")
-    gt_path_train = os.path.join(total_path, "train/ground_truth")
-    img_path_val = os.path.join(total_path, "validation/images")
-    scrib_path_val = os.path.join(total_path, "validation/scribbles")
-    gt_path_val = os.path.join(total_path, "validation/ground_truth")
-    if not os.path.exists(img_path_train):
-        os.makedirs(img_path_train)
-    if not os.path.exists(scrib_path_train):
-        os.makedirs(scrib_path_train)
-    if not os.path.exists(gt_path_train):
-        os.makedirs(gt_path_train)
-    if not os.path.exists(img_path_val):
-        os.makedirs(img_path_val)
-    if not os.path.exists(scrib_path_val):
-        os.makedirs(scrib_path_val)
-    if not os.path.exists(gt_path_val):
-        os.makedirs(gt_path_val)
-
-    images, scribbles, ground_truths, _, palette = load_dataset(
-        source_path, "images", "scribbles", "ground_truth"
-    )
+    img_path, scrib_path, gt_path = _create_data_paths(save_path)
 
     # ensure we have equal amounts of everything
     N_images, *_ = images.shape
@@ -307,12 +299,8 @@ def augment_and_save(source_path: str, save_path: str, save_dir: str, train_set_
 
     next_id = 0 # image ID for saving
     for (img, scrib, gt) in zip(images, scribbles, ground_truths):
-        if next_id <= len(images) * train_set_percentage:
-            augmented_triplets = _augment_triplet(img, scrib, gt)
-            next_id = _save_triplets(augmented_triplets, img_path_train, scrib_path_train, gt_path_train, palette, next_id)
-        else:
-            augmented_triplets = _augment_triplet(img, scrib, gt)
-            next_id = _save_triplets(augmented_triplets, img_path_val, scrib_path_val, gt_path_val, palette, next_id)
+        augmented_triplets = _augment_triplet(img, scrib, gt)
+        next_id = _save_triplets(augmented_triplets, img_path, scrib_path, gt_path, palette, next_id)
 
 def save_training_plots(save_dir, train_losses, val_losses, obj_ious, bkg_ious, mean_ious):
     """
