@@ -15,6 +15,7 @@ import torch
 # constants
 IMG_ORIG_WIDTH = 500
 IMG_ORIG_HEIGHT = 375
+TRAIN_SET_SIZE = 0.85
 
 def train_test_split_dataset(
         images: np.ndarray,
@@ -269,21 +270,30 @@ def _save_triplets(triplets: List[Tuple[np.ndarray, np.ndarray, np.ndarray]],
         idx += 1
     return idx
 
-def augment_and_save(source_path: str, save_path: str, save_dir: str):
+def augment_and_save(source_path: str, save_path: str, save_dir: str, train_set_percentage = TRAIN_SET_SIZE):
     """
     Augments the training data according to the documentation and saves the resulting data
     @param source_path: path to the directory containing images, scribbles, ground truths
     """
     total_path = os.path.join(save_path, save_dir)
-    img_path = os.path.join(total_path, "images")
-    scrib_path = os.path.join(total_path, "scribbles")
-    gt_path = os.path.join(total_path, "ground_truth")
-    if not os.path.exists(img_path):
-        os.makedirs(img_path)
-    if not os.path.exists(scrib_path):
-        os.makedirs(scrib_path)
-    if not os.path.exists(gt_path):
-        os.makedirs(gt_path)
+    img_path_train = os.path.join(total_path, "train/images")
+    scrib_path_train = os.path.join(total_path, "train/scribbles")
+    gt_path_train = os.path.join(total_path, "train/ground_truth")
+    img_path_val = os.path.join(total_path, "validation/images")
+    scrib_path_val = os.path.join(total_path, "validation/scribbles")
+    gt_path_val = os.path.join(total_path, "validation/ground_truth")
+    if not os.path.exists(img_path_train):
+        os.makedirs(img_path_train)
+    if not os.path.exists(scrib_path_train):
+        os.makedirs(scrib_path_train)
+    if not os.path.exists(gt_path_train):
+        os.makedirs(gt_path_train)
+    if not os.path.exists(img_path_val):
+        os.makedirs(img_path_val)
+    if not os.path.exists(scrib_path_val):
+        os.makedirs(scrib_path_val)
+    if not os.path.exists(gt_path_val):
+        os.makedirs(gt_path_val)
 
     images, scribbles, ground_truths, _, palette = load_dataset(
         source_path, "images", "scribbles", "ground_truth"
@@ -297,8 +307,12 @@ def augment_and_save(source_path: str, save_path: str, save_dir: str):
 
     next_id = 0 # image ID for saving
     for (img, scrib, gt) in zip(images, scribbles, ground_truths):
-        augmented_triplets = _augment_triplet(img, scrib, gt)
-        next_id = _save_triplets(augmented_triplets, img_path, scrib_path, gt_path, palette, next_id)
+        if next_id <= len(images) * train_set_percentage:
+            augmented_triplets = _augment_triplet(img, scrib, gt)
+            next_id = _save_triplets(augmented_triplets, img_path_train, scrib_path_train, gt_path_train, palette, next_id)
+        else:
+            augmented_triplets = _augment_triplet(img, scrib, gt)
+            next_id = _save_triplets(augmented_triplets, img_path_val, scrib_path_val, gt_path_val, palette, next_id)
 
 def save_training_plots(save_dir, train_losses, val_losses, obj_ious, bkg_ious, mean_ious):
     """

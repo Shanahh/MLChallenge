@@ -2,7 +2,6 @@ import os
 import torch
 from data import save_training_plots, save_model, remove_padding_gt
 from evaluation import *
-from model import UNet3
 from util import store_predictions
 
 # constants
@@ -36,11 +35,11 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         print(f"Epoch {epoch + 1}/{num_epochs}")
         print("-" * NUM_BARS)
         # training
-        epoch_train_loss = training_phase(model, train_loader, criterion, optimizer, device)
+        epoch_train_loss = _training_phase(model, train_loader, criterion, optimizer, device)
         train_losses.append(epoch_train_loss)
 
         # validation
-        epoch_val_loss, epoch_val_obj_iou, epoch_val_bkg_iou, epoch_val_mean_iou = validation_phase(model, val_loader, criterion, device)
+        epoch_val_loss, epoch_val_obj_iou, epoch_val_bkg_iou, epoch_val_mean_iou = _validation_phase(model, val_loader, criterion, device)
         val_losses.append(epoch_val_loss)
         val_obj_ious.append(epoch_val_obj_iou)
         val_bkg_ious.append(epoch_val_bkg_iou)
@@ -62,9 +61,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
     print("Training finished - saving results...")
     save_training_plots(PLOTS_DIR_PATH, train_losses, val_losses, val_obj_ious, val_bkg_ious, val_mean_ious)
 
-    return best_model_name
+    return os.path.join(MODEL_DIR_PATH, best_model_name)
 
-def training_phase(model, train_loader, criterion, optimizer, device):
+def _training_phase(model, train_loader, criterion, optimizer, device):
     """
     Does one epoch of training and returns the training loss of this epoch
     """
@@ -86,7 +85,7 @@ def training_phase(model, train_loader, criterion, optimizer, device):
     epoch_train_loss = train_loss_sum / len(train_loader.dataset)
     return epoch_train_loss
 
-def validation_phase(model, val_loader, criterion, device):
+def _validation_phase(model, val_loader, criterion, device):
     """
     Executes validation of the current epoch
     Returns the mean of each: validation_loss, object IoU, background IoU, mean IoU
@@ -125,8 +124,7 @@ def validation_phase(model, val_loader, criterion, device):
     epoch_mean_iou = val_mean_iou / len(val_loader.dataset)
     return epoch_val_loss, epoch_obj_iou, epoch_bkg_iou, epoch_mean_iou
 
-
-def predict_and_save(model, model_path, save_dir_path, save_dir, data_loader, fnames_test, palette):
+def predict_and_save(model, model_path, save_dir_path, save_dir, data_loader, fnames, palette):
     """
     Makes predictions for the data in the data loader and stores them in a folder in the given path.
     """
@@ -154,7 +152,7 @@ def predict_and_save(model, model_path, save_dir_path, save_dir, data_loader, fn
         pred_np = np.stack(prediction_list, axis=0)
 
         store_predictions(
-            pred_np, save_dir_path, save_dir, fnames_test, palette
+            pred_np, save_dir_path, save_dir, fnames, palette
         )
 
     print("Predictions saved.")

@@ -1,15 +1,14 @@
 import torch
-from torch import nn
 from torch.utils.data import DataLoader
 
 from data import train_test_split_dataset, SegmentationDataset
-from losses import WeightedSoftIoULoss, WeightedBCEDiceLoss
+from losses import WeightedBCEDiceLoss
 from trainer import train_model, predict_and_save
 from util import load_dataset
 from model import UNet3
 
 # constants
-SAVE_DIR_PATH = "dataset/augmentations"
+SAVE_DIR_PATH = "dataset/augmentations/validation"
 SAVE_DIR = "predictions"
 
 # HYPERPARAMETERS:
@@ -19,23 +18,30 @@ SAVE_DIR = "predictions"
 LEARNING_RATE = 1e-3
 
 # training:
-DATA_PATH = "dataset/augmentations" # different augmentation versions
+DATA_PATH_TRAIN = "dataset/augmentations/train" # different augmentation versions
+DATA_PATH_VAL = "dataset/augmentations/validation"
 VALIDATION_SET_SIZE = 0.1
-NUM_EPOCHS = 10
+NUM_EPOCHS = 50
 SCHEDULER_FACTOR = 0.1
-SCHEDULER_PATIENCE = 5 # compare with EPOCHS
-BATCH_SIZE = 8
+SCHEDULER_PATIENCE = 10 # compare with EPOCHS
+BATCH_SIZE = 16
 # loss type
 #-----------
 
 # load data
 images_train, scrib_train, gt_train, fnames, palette = load_dataset(
-    DATA_PATH, "images", "scribbles", "ground_truth"
+    DATA_PATH_TRAIN, "images", "scribbles", "ground_truth"
 )
 
+images_val, scrib_val, gt_val, fnames, palette = load_dataset(
+    DATA_PATH_VAL, "images", "scribbles", "ground_truth"
+)
+
+"""
 # split data
 (train_images, train_scribbles, train_gt), (test_images, test_scribbles, test_gt)\
 = train_test_split_dataset(images_train, scrib_train, gt_train, VALIDATION_SET_SIZE)
+"""
 
 # create instances
 
@@ -43,8 +49,8 @@ images_train, scrib_train, gt_train, fnames, palette = load_dataset(
 model = UNet3()
 
 # data loaders
-train_dataset = SegmentationDataset(train_images, train_scribbles, train_gt)
-val_dataset = SegmentationDataset(test_images, test_scribbles, test_gt)
+train_dataset = SegmentationDataset(images_train, scrib_train, gt_train)
+val_dataset = SegmentationDataset(images_val, scrib_val, gt_val)
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
@@ -55,6 +61,7 @@ scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', fa
 
 # train model
 best_model = train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, NUM_EPOCHS)
+#best_model = "models/model_2025-07-06_17-37-02.pth"
 
 # Make and save predictions
 predict_and_save(model, best_model, SAVE_DIR_PATH, SAVE_DIR, val_loader, fnames, palette)

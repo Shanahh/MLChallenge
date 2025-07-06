@@ -76,7 +76,7 @@ def model_output_to_mask(output_tensor, threshold=0.5):
     Returns a binary mask of shape (H, W) with values 0 or 1
     """
     # Output tensor has shape [batch_size, channels, H, W]
-    output_tensor = output_tensor.squeeze() # now shape should be [batch_size, H, W] since we have one output channel
+    output_tensor = output_tensor.squeeze(1) # now shape should be [batch_size, H, W] since we have one output channel
     # Convert tensor to numpy ndarray
     output_np = output_tensor.detach().cpu().numpy()
     # construct mask
