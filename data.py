@@ -6,6 +6,8 @@ import numpy as np
 import albumentations as A
 import os
 from PIL import Image
+from torch.utils.data import Dataset
+
 from util import load_dataset
 import matplotlib.pyplot as plt
 import torch
@@ -60,6 +62,37 @@ def train_test_split_dataset(
         (train_images, train_scribbles, train_gt),
         (test_images, test_scribbles, test_gt),
     )
+
+class SegmentationDataset(Dataset):
+    def __init__(self, images: list, scribbles: list, masks: list, transform=None):
+        """
+        images, scribbles, masks are lists of numpy arrays.
+        """
+        self.images = images
+        self.scribbles = scribbles
+        self.masks = masks
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        image = self.images[idx]           # shape: H x W x 3 (RGB)
+        scribble = self.scribbles[idx]     # shape: H x W (single channel)
+        mask = self.masks[idx]             # shape: H x W (single channel)
+
+        # Normalize and convert to tensors
+        image = torch.from_numpy(image).permute(2, 0, 1).float() / 255.0  # to C x H x W, float in [0,1]
+        scribble = torch.from_numpy(scribble).unsqueeze(0).float() / 255.0  # add channel dim, float in [0,1]
+        mask = torch.from_numpy(mask).unsqueeze(0).float()  # add channel dim, usually binary mask 0/1
+
+        # Combine image and scribble into a 4 channel input tensor
+        input_tensor = torch.cat([image, scribble], dim=0)  # shape: 4 x H x W
+
+        if self.transform:
+            input_tensor, mask = self.transform(input_tensor, mask)
+
+        return input_tensor, mask
 
 def pad_to_512(img: np.ndarray, pad_value: int = 0) -> np.ndarray:
     """

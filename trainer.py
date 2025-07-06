@@ -25,6 +25,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
     val_bkg_ious = []
     val_mean_ious = []
 
+    print("Starting training...")
+    print("using cuda cores: " + str(use_cuda))
+
     for epoch in range(num_epochs):
         print(f"Epoch {epoch + 1}/{num_epochs}")
         print("-" * NUM_BARS)
