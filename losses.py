@@ -79,3 +79,36 @@ class WeightedBCEDiceLoss(nn.Module):
         dice_loss = 1 - dice_score
 
         return bce_loss + dice_loss
+
+class ProbWeightedBCEDiceLoss(nn.Module):
+    def __init__(self, pos_weight=4.0, smooth=1e-6):
+        """
+        BCE + Dice Loss for models that output probabilities (sigmoid already applied).
+        Emulates pos_weight manually.
+        """
+        super().__init__()
+        self.pos_weight = pos_weight
+        self.smooth = smooth
+
+    def forward(self, probs, targets):
+        """
+        Args:
+            probs: model output after sigmoid, shape (N, 1, H, W), values in [0, 1]
+            targets: ground truth binary masks, same shape, values 0 or 1
+        """
+        # --- 1. Weighted BCE ---
+        # Manual weighting per pixel
+        weights = torch.where(targets == 1, self.pos_weight, 1.0).to(probs.device) # type: ignore
+        bce_loss = F.binary_cross_entropy(probs, targets, weight=weights)
+
+        # --- 2. Dice Loss ---
+        probs_flat = probs.view(-1)
+        targets_flat = targets.view(-1)
+        intersection = (probs_flat * targets_flat).sum()
+
+        dice_score = (2 * intersection + self.smooth) / (
+            probs_flat.sum() + targets_flat.sum() + self.smooth
+        )
+        dice_loss = 1 - dice_score
+
+        return bce_loss + dice_loss

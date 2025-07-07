@@ -2,10 +2,10 @@ import torch
 from torch.utils.data import DataLoader
 
 from data import train_test_split_dataset, SegmentationDataset, augment_and_save_data, pad_and_save_data
-from losses import WeightedBCEDiceLoss
+from losses import ProbWeightedBCEDiceLoss
+from model import UNet3
 from trainer import train_model, predict_and_save
 from util import load_dataset
-from model import UNet3
 
 # constants
 CREATE_NEW_AUGMENTATIONS = True
@@ -27,6 +27,7 @@ NUM_EPOCHS = 50
 SCHEDULER_FACTOR = 0.1
 SCHEDULER_PATIENCE = 10 # compare with EPOCHS
 BATCH_SIZE = 16
+WEIGHT_DECAY = 1e-5 # regularization which the optimizer uses
 # loss type
 #--------------
 
@@ -64,8 +65,8 @@ train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
 # loss and optimizing
-criterion = WeightedBCEDiceLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+criterion = ProbWeightedBCEDiceLoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=SCHEDULER_FACTOR, patience=SCHEDULER_PATIENCE)
 #--------------
 

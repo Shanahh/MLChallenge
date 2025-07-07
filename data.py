@@ -160,19 +160,22 @@ def _augment_triplet(
     """
 
     h, w = image.shape[:2]  # h=375, w=500
-    # random crop
+
+    # -------- Create transformers -----------
+
+    #1: random crop + resize
     transform_crop = A.Compose([
         A.RandomResizedCrop(size=(int(h * 0.8), int(w * 0.8)), scale=(0.8, 1.0), ratio=(0.9, 1.1), p=1.0),
         A.Resize(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH),
     ])
 
-    # mirror
+    #2: mirror
     transform_flip = A.Compose([
         A.HorizontalFlip(p=1.0),
         A.Resize(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH),  # keep original size
     ])
 
-    # random rotate, scribbles need different filling!
+    #3: random rotate, scribbles need different filling!
     angle = random.uniform(-15, 15)
     # for img and gt
     transform_rotate_img = A.Compose([
@@ -185,28 +188,52 @@ def _augment_triplet(
         A.Resize(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH),  # keep original size
     ])
 
-    # color jitter
+    #4: color jitter
     transform_color = A.Compose([
-        A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0, p=1.0),
-        # No resizing here needed for color-only transform because image is not spatially changed
+        A.ColorJitter(
+            brightness=(0.7, 1.3),  # ScaleFloatType
+            contrast=(0.7, 1.3),  # ScaleFloatType
+            saturation=(0.7, 1.3),  # ScaleFloatType
+            hue=(-0.5, 0.5),  # ScaleFloatType
+            p=1.0,  # float
+        ),
+        A.Resize(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH)
     ])
 
-    # Original (just pad to 512x512)
+    #5: elastic deformation
+    transform_elastic = A.Compose([
+        A.ElasticTransform(alpha=30, sigma=20, p=1.0),
+        A.Resize(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH)
+    ])
+
+    #6: grayscale img - no transformer
+
+    #7: gaussian noise
+    transform_noise = A.Compose([
+        A.GaussNoise(std_range=(0.35, 0.45)),
+        A.Resize(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH)
+    ])
+
+    # -------- Augmented versions -----------
+
+    #0: Original (just pad to 512x512)
     orig_img = _pad_to_512(image)
     orig_scribble = _pad_to_512(scribble, pad_value=255)
     orig_gt = _pad_to_512(ground_truth)
 
-    # Augmented versions
+    #1: random crop + resize
     crop = transform_crop(image=image, masks=[scribble, ground_truth])
     crop_img = _pad_to_512(crop['image'])
     crop_scribble = _pad_to_512(crop['masks'][0], pad_value=255)
     crop_gt = _pad_to_512(crop['masks'][1])
 
+    #2: mirror
     flip = transform_flip(image=image, masks=[scribble, ground_truth])
     flip_img = _pad_to_512(flip['image'])
     flip_scribble = _pad_to_512(flip['masks'][0], pad_value=255)
     flip_gt = _pad_to_512(flip['masks'][1])
 
+    #3: rotate
     rotate_img = transform_rotate_img(image=image)['image']
     rotate_scribble = transform_rotate_scrib(image=scribble)['image']
     rotate_gt = transform_rotate_img(image=ground_truth)['image']
@@ -214,7 +241,7 @@ def _augment_triplet(
     rotate_scribble = _pad_to_512(rotate_scribble, pad_value=255)
     rotate_gt = _pad_to_512(rotate_gt)
 
-    # Color jitter applied only on image, masks resized separately to original size and padded
+    #4: color jitter, applied only on image, masks resized separately to original size and padded
     color_img = transform_color(image=image)['image']
     color_img = _pad_to_512(color_img)
 
@@ -225,12 +252,35 @@ def _augment_triplet(
     color_gt = A.Resize(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH)(image=ground_truth)['image']
     color_gt = _pad_to_512(color_gt)
 
+    #5: elastic deformation (apply jointly)
+    elastic = transform_elastic(image=image, masks=[scribble, ground_truth])
+    elastic_img = _pad_to_512(elastic['image'])
+    elastic_scribble = _pad_to_512(elastic['masks'][0], pad_value=255)
+    elastic_gt = _pad_to_512(elastic['masks'][1])
+
+    #6: grayscale img
+    gray_img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  # single channel
+    gray_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2BGR)  # convert back to 3 channels to keep shape consistent
+    gray_img = _pad_to_512(gray_img)
+
+    gray_scribble = _pad_to_512(scribble, pad_value=255)
+    gray_gt = _pad_to_512(ground_truth)
+
+    #7: gaussian noise
+    noise_img = transform_noise(image=image)['image']
+    noise_img = _pad_to_512(noise_img)
+    noise_scribble = _pad_to_512(scribble, pad_value=255)
+    noise_gt = _pad_to_512(ground_truth)
+
     augmented_triplets = [
         (orig_img, orig_scribble, orig_gt),
         (crop_img, crop_scribble, crop_gt),
         (flip_img, flip_scribble, flip_gt),
         (rotate_img, rotate_scribble, rotate_gt),
         (color_img, color_scribble, color_gt),
+        (elastic_img, elastic_scribble, elastic_gt),
+        (gray_img, gray_scribble, gray_gt),
+        (noise_img, noise_scribble, noise_gt),
     ]
 
     return augmented_triplets

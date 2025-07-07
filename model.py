@@ -9,6 +9,7 @@ KERNEL_SIZE_FINAL = 1
 STRIDE_RESAMPLE = 2
 PADDING = 1
 FINAL_CHANNELS = 1
+DROPOUT_PROB = 0.2
 
 class UNet4(nn.Module):
     """
@@ -98,11 +99,14 @@ class EncoderBlockGeneric(nn.Module):
         self.bn1 = nn.BatchNorm2d(out_channels)
         self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=KERNEL_SIZE_CONV, padding=PADDING)
         self.bn2 = nn.BatchNorm2d(out_channels)
+        self.dropout = nn.Dropout2d(p=DROPOUT_PROB)
         self.pool = nn.MaxPool2d(kernel_size=KERNEL_SIZE_RESAMPLE, stride=STRIDE_RESAMPLE)
 
     def forward(self, x):
         x = F.relu(self.bn1(self.conv1(x)))
+        x = self.dropout(x)
         x = F.relu(self.bn2(self.conv2(x)))
+        x = self.dropout(x)
         skip = x
         x = self.pool(x)
         return x, skip
@@ -116,9 +120,11 @@ class EncoderBlockBottleneck(nn.Module):
         super().__init__()
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=KERNEL_SIZE_CONV, padding=PADDING)
         self.bn1 = nn.BatchNorm2d(out_channels)
+        self.dropout = nn.Dropout2d(p=DROPOUT_PROB)
 
     def forward(self, x):
         x = F.relu(self.bn1(self.conv1(x)))
+        x = self.dropout(x)
         return x
 
 class DecoderBlockBottleneck(nn.Module):
@@ -130,10 +136,12 @@ class DecoderBlockBottleneck(nn.Module):
         super().__init__()
         self.conv1 = nn.Conv2d(in_channels, in_channels, kernel_size=KERNEL_SIZE_CONV, padding=PADDING)
         self.bn1 = nn.BatchNorm2d(in_channels)
+        self.dropout = nn.Dropout2d(p=DROPOUT_PROB)
         self.upconv = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=KERNEL_SIZE_RESAMPLE, stride=STRIDE_RESAMPLE)
 
     def forward(self, x):
         x = F.relu(self.bn1(self.conv1(x)))
+        x = self.dropout(x)
         x = self.upconv(x)
         return x
 
@@ -149,12 +157,15 @@ class DecoderBlockGeneric(nn.Module):
         self.bn1 = nn.BatchNorm2d(in_channels)
         self.conv2 = nn.Conv2d(in_channels, in_channels, kernel_size=KERNEL_SIZE_CONV, padding=PADDING)
         self.bn2 = nn.BatchNorm2d(in_channels)
+        self.dropout = nn.Dropout2d(p=DROPOUT_PROB)
         self.upconv = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=KERNEL_SIZE_RESAMPLE, stride=STRIDE_RESAMPLE)
 
     def forward(self, x, skip_connection):
         x = torch.cat([x, skip_connection], dim=1)
         x = F.relu(self.bn1(self.conv1(x)))
+        x = self.dropout(x)
         x = F.relu(self.bn2(self.conv2(x)))
+        x = self.dropout(x)
         x = self.upconv(x)
         return x
 
@@ -170,12 +181,15 @@ class DecoderBlockFinal(nn.Module):
         self.bn1 = nn.BatchNorm2d(in_channels)
         self.conv2 = nn.Conv2d(in_channels, in_channels, kernel_size=KERNEL_SIZE_CONV, padding=PADDING)
         self.bn2 = nn.BatchNorm2d(in_channels)
+        self.dropout = nn.Dropout2d(p=DROPOUT_PROB)
         self.final_conv = nn.Conv2d(in_channels, FINAL_CHANNELS, kernel_size=KERNEL_SIZE_FINAL)
 
     def forward(self, x, skip_connection):
         x = torch.cat([x, skip_connection], dim=1)
         x = F.relu(self.bn1(self.conv1(x)))
+        x = self.dropout(x)
         x = F.relu(self.bn2(self.conv2(x)))
+        x = self.dropout(x)
         x = self.final_conv(x)
         x = torch.sigmoid(x)
         return x
