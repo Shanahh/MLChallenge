@@ -175,7 +175,10 @@ def _augment_triplet(
     ])
 
     # random rotate, scribbles need different filling!
-    angle = random.uniform(-15, 15)
+    if random.random() < 0.5:
+        angle = random.uniform(-15, -5)
+    else:
+        angle = random.uniform(5, 15)
     # for img and gt
     transform_rotate_img = A.Compose([
         A.Rotate(limit=(angle, angle), border_mode=0, fill=0, p=1.0), # fill with black

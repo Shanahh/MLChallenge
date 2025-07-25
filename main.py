@@ -9,9 +9,9 @@ from util import load_dataset
 
 # constants
 CREATE_NEW_AUGMENTATIONS = False
-SAVE_PREDICTIONS = True
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+SAVE_PREDICTIONS = False
 
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 SAVE_PATH_PRED = "dataset/augmentations/validation/predictions"
 SOURCE_PATH_TRAIN = "dataset/training"
 SOURCE_PATH_AUG_TRAIN = "dataset/augmentations/train"
@@ -25,7 +25,7 @@ HYPERPARAMS = {
     "training": {
         "learning_rate": 2e-3,
         "validation_set_size": 0.15,
-        "num_epochs": 30,
+        "num_epochs": 3,
         "scheduler_factor": 0.1,
         "scheduler_patience": 10,
         "batch_size": 16
@@ -54,7 +54,7 @@ val_images, val_scrib, val_gt, *_ = load_dataset(
     SOURCE_PATH_AUG_VAL, "images", "scribbles", "ground_truth"
 )
 
-# CREATE INSTANCES
+# create instances
 
 # model
 model = UNet3(dropout_rate=HYPERPARAMS["regularization"]["dropout_rate_model"])
@@ -91,7 +91,7 @@ scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
 
 # train model
 best_model_path = train_model(
-    model, device, train_loader, val_loader,
+    model, DEVICE, train_loader, val_loader,
     criterion, optimizer, scheduler,
     HYPERPARAMS["training"]["num_epochs"]
 )
@@ -99,6 +99,6 @@ best_model_path = train_model(
 # make and save predictions
 if SAVE_PREDICTIONS:
     predict_and_save(
-        model, device, best_model_path,
+        model, DEVICE, best_model_path,
         SAVE_PATH_PRED, val_loader, fnames2, palette2
     )
