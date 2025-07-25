@@ -1,6 +1,9 @@
 import os
+from datetime import datetime
+
 import torch
-from data import save_training_plots, save_model, remove_padding_gt
+import copy
+from data import save_training_plots, store_model, remove_padding_gt
 from evaluation import *
 from util import store_predictions
 
@@ -21,7 +24,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
     model = model.to(device)
 
     best_val_loss = float('inf')
-    best_model_name = ""
+    best_model = model
     train_losses = []
     val_losses = []
     val_obj_ious = []
@@ -52,15 +55,17 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         # save model if it achieves the current best results on the validation set in terms of validation loss
         if epoch_val_loss < best_val_loss:
             best_val_loss = epoch_val_loss
-            best_model_name = save_model(model, MODEL_DIR_PATH)
+            best_model = copy.deepcopy(model)
 
         # optimize learning rate if we have a scheduler
         if scheduler:
             scheduler.step(epoch_val_loss)
 
+    # save results
     print("Training finished - saving results...")
-    save_training_plots(PLOTS_DIR_PATH, train_losses, val_losses, val_obj_ious, val_bkg_ious, val_mean_ious)
-
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    save_training_plots(timestamp, PLOTS_DIR_PATH, train_losses, val_losses, val_obj_ious, val_bkg_ious, val_mean_ious)
+    best_model_name = store_model(timestamp, best_model, MODEL_DIR_PATH)
     return os.path.join(MODEL_DIR_PATH, best_model_name)
 
 def _training_phase(model, train_loader, criterion, optimizer, device):

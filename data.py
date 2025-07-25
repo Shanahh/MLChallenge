@@ -1,14 +1,14 @@
-from datetime import datetime
-from typing import List, Tuple
-import random
-import cv2
-import numpy as np
-import albumentations as A
 import os
+import random
+from typing import List, Tuple
+
+import albumentations as A
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
 from PIL import Image
 from torch.utils.data import Dataset
-import matplotlib.pyplot as plt
-import torch
 
 # constants
 IMG_ORIG_WIDTH = 500
@@ -18,7 +18,7 @@ def train_test_split_dataset(
         images: np.ndarray,
         scribbles: np.ndarray,
         ground_truth: np.ndarray,
-        test_size: float = 0.2,
+        test_size,
         random_seed: int | None = None
 ):
     """
@@ -205,7 +205,7 @@ def _augment_triplet(
 
     # gaussian noise
     transform_noise = A.Compose([
-        A.GaussNoise(std_range=(0.20, 0.40), p=1.0),
+        A.GaussNoise(std_range=(0.2, 0.3), p=1.0),
         A.Resize(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH)
     ])
 
@@ -336,7 +336,7 @@ def augment_and_save_data(images, scribbles, ground_truths, palette, save_path):
         augmented_triplets = _augment_triplet(img, scrib, gt)
         next_id = _save_triplets(augmented_triplets, img_path, scrib_path, gt_path, palette, next_id)
 
-def save_training_plots(save_dir, train_losses, val_losses, obj_ious, bkg_ious, mean_ious):
+def save_training_plots(timestamp, save_dir, train_losses, val_losses, obj_ious, bkg_ious, mean_ious):
     """
     Saves plots during model training for different statistics:
     training losses,
@@ -347,8 +347,6 @@ def save_training_plots(save_dir, train_losses, val_losses, obj_ious, bkg_ious, 
     """
     os.makedirs(save_dir, exist_ok=True)
     epochs = range(1, len(train_losses) + 1)
-
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     plt.figure(figsize=(10, 6))
     plt.plot(epochs, train_losses, 'b-', label='Training Loss')
@@ -373,7 +371,7 @@ def save_training_plots(save_dir, train_losses, val_losses, obj_ious, bkg_ious, 
     plt.savefig(os.path.join(save_dir, f"iou_plot_{timestamp}.pdf"))
     plt.close()
 
-def save_model(model, save_dir):
+def store_model(timestamp, model, save_dir):
     """
     Saves the given model in the specified directory with a timestamped filename.
 
@@ -382,9 +380,6 @@ def save_model(model, save_dir):
         save_dir: Directory path where the model file will be saved.
     """
     os.makedirs(save_dir, exist_ok=True)
-
-    # Generate timestamp string
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     # Construct filename with timestamp and extension
     filename = f"model_{timestamp}.pth"

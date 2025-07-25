@@ -8,7 +8,7 @@ from trainer import train_model, predict_and_save
 from util import load_dataset
 
 # constants
-CREATE_NEW_AUGMENTATIONS = True
+CREATE_NEW_AUGMENTATIONS = False
 SAVE_PREDICTIONS = True
 SAVE_PATH_PRED = "dataset/augmentations/validation/predictions"
 SOURCE_PATH_TRAIN = "dataset/training"
@@ -19,15 +19,16 @@ SOURCE_PATH_AUG_VAL = "dataset/augmentations/validation"
 #--------------
 # model:
 # number of filters / blocks in Unet -> Adapt in model.py
-LEARNING_RATE = 1e-3
+# dropout prob
 
 # training:
-VALIDATION_SET_SIZE = 0.1
-NUM_EPOCHS = 60
-SCHEDULER_FACTOR = 0.1
+VALIDATION_SET_SIZE = 0.15
+NUM_EPOCHS = 50
+SCHEDULER_FACTOR = 0.8
 SCHEDULER_PATIENCE = 10 # compare with EPOCHS
 BATCH_SIZE = 16
-WEIGHT_DECAY = 1e-5 # regularization which the optimizer uses
+LEARNING_RATE = 2e-3
+WEIGHT_DECAY = 1e-6 # regularization which the optimizer uses
 # loss type
 #--------------
 
@@ -39,7 +40,7 @@ if CREATE_NEW_AUGMENTATIONS:
     )
     # split data
     (train_images, train_scribbles, train_gt), (test_images, test_scribbles, test_gt) \
-        = train_test_split_dataset(images, scrib, gt, VALIDATION_SET_SIZE)
+        = train_test_split_dataset(images, scrib, gt, test_size=VALIDATION_SET_SIZE)
     # augment
     augment_and_save_data(train_images, train_scribbles, train_gt, palette, SOURCE_PATH_AUG_TRAIN)
     pad_and_save_data(test_images, test_scribbles, test_gt, palette, SOURCE_PATH_AUG_VAL)
