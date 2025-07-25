@@ -4,7 +4,6 @@ from typing import List, Tuple
 
 import albumentations as A
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from PIL import Image
@@ -335,61 +334,3 @@ def augment_and_save_data(images, scribbles, ground_truths, palette, save_path):
     for (img, scrib, gt) in zip(images, scribbles, ground_truths):
         augmented_triplets = _augment_triplet(img, scrib, gt)
         next_id = _save_triplets(augmented_triplets, img_path, scrib_path, gt_path, palette, next_id)
-
-def save_training_plots(timestamp, save_dir, train_losses, val_losses, obj_ious, bkg_ious, mean_ious):
-    """
-    Saves plots during model training for different statistics:
-    training losses,
-    validation losses,
-    object ious,
-    background ious,
-    mean ious
-    """
-    os.makedirs(save_dir, exist_ok=True)
-    epochs = range(1, len(train_losses) + 1)
-
-    plt.figure(figsize=(10, 6))
-    plt.plot(epochs, train_losses, 'b-', label='Training Loss')
-    plt.plot(epochs, val_losses, 'r-', label='Validation Loss')
-    plt.title('Loss over Epochs')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(os.path.join(save_dir, f"loss_plot_{timestamp}.pdf"))
-    plt.close()
-
-    plt.figure(figsize=(10, 6))
-    plt.plot(epochs, obj_ious, 'g-', label='Object IoU')
-    plt.plot(epochs, bkg_ious, 'c-', label='Background IoU')
-    plt.plot(epochs, mean_ious, 'm-', label='Mean IoU')
-    plt.title('IoU scores over Epochs')
-    plt.xlabel('Epoch')
-    plt.ylabel('IoU')
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(os.path.join(save_dir, f"iou_plot_{timestamp}.pdf"))
-    plt.close()
-
-def store_model(timestamp, model, save_dir):
-    """
-    Saves the given model in the specified directory with a timestamped filename.
-
-    Args:
-        model: The PyTorch model to save.
-        save_dir: Directory path where the model file will be saved.
-    """
-    os.makedirs(save_dir, exist_ok=True)
-
-    # Construct filename with timestamp and extension
-    filename = f"model_{timestamp}.pth"
-
-    # Full path for saving
-    full_path = os.path.join(save_dir, filename)
-
-    # Save model state dict
-    torch.save(model.state_dict(), full_path)
-
-    print(f"Model saved to {full_path}")
-
-    return filename

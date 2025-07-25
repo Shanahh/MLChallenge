@@ -3,24 +3,22 @@ from datetime import datetime
 
 import torch
 import copy
-from data import save_training_plots, store_model, remove_padding_gt
+from data import remove_padding_gt
+import matplotlib.pyplot as plt
 from evaluation import *
 from util import store_predictions
 
 # constants
-TRAIN_LOCATION_GPU = "cuda"
-TRAIN_LOCATION_CPU = "cpu"
 MODEL_DIR_PATH = "models"
 PLOTS_DIR_PATH = "training_plots"
 NUM_BARS = 30
 
-def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, num_epochs):
+def train_model(model, device, train_loader, val_loader, criterion, optimizer, scheduler, num_epochs):
     """
     Trains the given model and saves the best model and all statistics collected on the validation set, such as training loss,
     validation loss, and IoU scores.
     """
     use_cuda = torch.cuda.is_available()
-    device = torch.device(TRAIN_LOCATION_GPU if use_cuda else TRAIN_LOCATION_CPU)
     model = model.to(device)
 
     best_val_loss = float('inf')
@@ -38,11 +36,11 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         print(f"Epoch {epoch + 1}/{num_epochs}")
         print("-" * NUM_BARS)
         # training
-        epoch_train_loss = _training_phase(model, train_loader, criterion, optimizer, device)
+        epoch_train_loss = _training_phase(model, device, train_loader, criterion, optimizer)
         train_losses.append(epoch_train_loss)
 
         # validation
-        epoch_val_loss, epoch_val_obj_iou, epoch_val_bkg_iou, epoch_val_mean_iou = _validation_phase(model, val_loader, criterion, device)
+        epoch_val_loss, epoch_val_obj_iou, epoch_val_bkg_iou, epoch_val_mean_iou = _validation_phase(model, device, val_loader, criterion)
         val_losses.append(epoch_val_loss)
         val_obj_ious.append(epoch_val_obj_iou)
         val_bkg_ious.append(epoch_val_bkg_iou)
@@ -63,12 +61,10 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
     # save results
     print("Training finished - saving results...")
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    save_training_plots(timestamp, PLOTS_DIR_PATH, train_losses, val_losses, val_obj_ious, val_bkg_ious, val_mean_ious)
-    best_model_name = store_model(timestamp, best_model, MODEL_DIR_PATH)
-    return os.path.join(MODEL_DIR_PATH, best_model_name)
+    best_model_path = _save_training_results(best_model, train_losses, val_losses, val_obj_ious, val_bkg_ious, val_mean_ious)#
+    return best_model_path
 
-def _training_phase(model, train_loader, criterion, optimizer, device):
+def _training_phase(model, device, train_loader, criterion, optimizer):
     """
     Does one epoch of training and returns the training loss of this epoch
     """
@@ -90,7 +86,7 @@ def _training_phase(model, train_loader, criterion, optimizer, device):
     epoch_train_loss = train_loss_sum / len(train_loader.dataset)
     return epoch_train_loss
 
-def _validation_phase(model, val_loader, criterion, device):
+def _validation_phase(model, device, val_loader, criterion):
     """
     Executes validation of the current epoch
     Returns the mean of each: validation_loss, object IoU, background IoU, mean IoU
@@ -114,7 +110,7 @@ def _validation_phase(model, val_loader, criterion, device):
             # compute different IoU scores
             outputs_np = model_output_to_mask(outputs)
             masks_np = model_output_to_mask(masks)
-            # revert padding to not get incorrect background IoU scores
+            # revert padding to get correct background IoU scores
             outputs_np_no_pad = remove_padding_gt(outputs_np)
             masks_np_no_pad = remove_padding_gt(masks_np)
             obj_io_batch, bkg_iou_batch, mean_iou_batch = get_ious(masks_np_no_pad, outputs_np_no_pad)
@@ -129,11 +125,70 @@ def _validation_phase(model, val_loader, criterion, device):
     epoch_mean_iou = val_mean_iou / len(val_loader.dataset)
     return epoch_val_loss, epoch_obj_iou, epoch_bkg_iou, epoch_mean_iou
 
-def predict_and_save(model, model_path, save_dir_path, data_loader, fnames, palette):
+def _save_training_results(best_model, train_losses, val_losses, val_obj_ious, val_bkg_ious, val_mean_ious):
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    _save_training_plots(PLOTS_DIR_PATH, train_losses, val_losses, val_obj_ious, val_bkg_ious, val_mean_ious, timestamp)
+    best_model_path = _store_model(MODEL_DIR_PATH, best_model, timestamp)
+    return best_model_path
+
+def _save_training_plots(save_dir_path, train_losses, val_losses, obj_ious, bkg_ious, mean_ious, timestamp):
+    """
+    Saves plots during model training for different statistics:
+    training losses,
+    validation losses,
+    object ious,
+    background ious,
+    mean ious
+    """
+    os.makedirs(save_dir_path, exist_ok=True)
+    epochs = range(1, len(train_losses) + 1)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(epochs, train_losses, 'b-', label='Training Loss')
+    plt.plot(epochs, val_losses, 'r-', label='Validation Loss')
+    plt.title('Loss over Epochs')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(os.path.join(save_dir_path, f"loss_plot_{timestamp}.pdf"))
+    plt.close()
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(epochs, obj_ious, 'g-', label='Object IoU')
+    plt.plot(epochs, bkg_ious, 'c-', label='Background IoU')
+    plt.plot(epochs, mean_ious, 'm-', label='Mean IoU')
+    plt.title('IoU scores over Epochs')
+    plt.xlabel('Epoch')
+    plt.ylabel('IoU')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(os.path.join(save_dir_path, f"iou_plot_{timestamp}.pdf"))
+    plt.close()
+
+def _store_model(save_dir_path, model, timestamp):
+    """
+    Saves the given model in the specified directory and returns the full model path.
+    """
+    os.makedirs(save_dir_path, exist_ok=True)
+
+    # Construct filename with timestamp and extension
+    filename = f"model_{timestamp}.pth"
+
+    # Full path for saving
+    full_path = os.path.join(save_dir_path, filename)
+
+    # Save model state dict
+    torch.save(model.state_dict(), full_path)
+
+    print(f"Model saved to {full_path}")
+
+    return full_path
+
+def predict_and_save(model, device, model_path, save_dir_path, data_loader, fnames, palette):
     """
     Makes predictions for the data in the data loader and stores them in a folder in the given path.
     """
-    device = TRAIN_LOCATION_GPU if torch.cuda.is_available() else TRAIN_LOCATION_CPU
     os.makedirs(save_dir_path, exist_ok=True)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.to(device)
