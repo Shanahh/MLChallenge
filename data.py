@@ -63,7 +63,10 @@ def train_test_split_dataset(
 class SegmentationDataset(Dataset):
     def __init__(self, images, scribbles, masks, transform=None):
         """
-        images, scribbles, masks are lists of numpy arrays.
+        Parameters:
+            images (np.ndarray): (N, H, W, 3) RGB images
+            scribbles (np.ndarray): (N, H, W) scribble masks
+            masks (np.ndarray): (N, H, W) ground truth masks
         """
         self.images = images
         self.scribbles = scribbles
@@ -81,7 +84,7 @@ class SegmentationDataset(Dataset):
         # Normalize and convert to tensors
         image = torch.from_numpy(image).permute(2, 0, 1).float() / 255.0  # to C x H x W, float in [0,1]
         scribble = torch.from_numpy(scribble).unsqueeze(0).float() / 255.0  # add channel dim, float in [0,1]
-        mask = torch.from_numpy(mask).unsqueeze(0).float()  # add channel dim, usually binary mask 0/1
+        mask = torch.from_numpy(mask).unsqueeze(0).float()  # add channel dim, now (1 x H x W)
 
         # Combine image and scribble into a 4 channel input tensor
         input_tensor = torch.cat([image, scribble], dim=0)  # shape: 4 x H x W
@@ -136,6 +139,8 @@ def _remove_padding_gt(padded_img: np.ndarray) -> np.ndarray:
 def remove_padding_gt(padded_images: np.ndarray) -> np.ndarray:
     """
     Removes padding from multiple 512x512 ground truth masks
+    Input Dim: (batch_size, H, W)
+    Output Dim: (batch_size, H, W)
     """
     gts_no_padding = []
     N = padded_images.shape[0]

@@ -48,37 +48,41 @@ class WeightedSoftIoULoss(nn.Module):
         return loss
 
 class WeightedBCEDiceLoss(nn.Module):
-    def __init__(self, pos_weight=4.0, smooth=1e-6):
+    def __init__(self, pos_weight=5.0, smooth=1e-6, dice_weight=1.0):
         """
-        pos_weight: float, multiplier for positive class (object) pixels in BCE.
-                    For example, if object pixels are rare, use >1 to emphasize.
-        smooth: small constant to avoid division by zero in Dice loss.
+        takes raw logits as input
+        pos_weight: float, multiplier for positive class pixels in BCE.
+        smooth: float, smoothing constant for Dice.
+        dice_weight: float, weight factor for the Dice loss term (default 1.0).
         """
         super().__init__()
-        self.pos_weight = pos_weight
         self.smooth = smooth
+        self.dice_weight = dice_weight
+        # Store pos_weight as a buffer so it moves with .to(device)
+        self.register_buffer("pos_weight_tensor", torch.tensor(pos_weight))
 
     def forward(self, logits, targets):
         """
-        logits: predicted raw outputs from model (no sigmoid applied), shape (N, 1, H, W)
-        targets: ground truth masks, same shape, values 0 or 1
+        logits: raw outputs from the model, shape (N, 1, H, W)
+        targets: ground truth masks, same shape, values {0,1}
         """
+        # Binary cross-entropy with logits
+        bce_loss = F.binary_cross_entropy_with_logits(
+            logits, targets, pos_weight=self.pos_weight_tensor
+        )
 
-        # Weighted BCE loss
-        # pos_weight is a tensor with shape [1] or broadcastable to logits shape
-        pos_weight_tensor = torch.tensor(self.pos_weight).to(logits.device)
-        bce_loss = F.binary_cross_entropy_with_logits(logits, targets, pos_weight=pos_weight_tensor)
-
-        # Dice loss
+        # Dice loss (per image, averaged across batch)
         probs = torch.sigmoid(logits)
-        probs_flat = probs.view(-1)
-        targets_flat = targets.view(-1)
+        probs_flat = probs.view(probs.size(0), -1)
+        targets_flat = targets.view(targets.size(0), -1)
 
-        intersection = (probs_flat * targets_flat).sum()
-        dice_score = (2 * intersection + self.smooth) / (probs_flat.sum() + targets_flat.sum() + self.smooth)
-        dice_loss = 1 - dice_score
+        intersection = (probs_flat * targets_flat).sum(1)
+        dice_score = (2. * intersection + self.smooth) / (
+            probs_flat.sum(1) + targets_flat.sum(1) + self.smooth
+        )
+        dice_loss = 1. - dice_score.mean()
 
-        return bce_loss + dice_loss
+        return bce_loss + self.dice_weight * dice_loss
 
 class ProbWeightedBCEDiceLoss(nn.Module):
     def __init__(self, pos_weight=4.0, smooth=1e-6):
@@ -112,3 +116,46 @@ class ProbWeightedBCEDiceLoss(nn.Module):
         dice_loss = 1 - dice_score
 
         return bce_loss + dice_loss
+
+
+class WeightedBCEJaccardLoss(nn.Module):
+    def __init__(self, pos_weight=5.0, smooth=1e-6, jaccard_weight=1.0):
+        """
+        pos_weight: emphasis on positive pixels in BCE
+        smooth: for numerical stability in Jaccard
+        jaccard_weight: balance between BCE and Jaccard
+        """
+        super().__init__()
+        self.pos_weight = pos_weight
+        self.smooth = smooth
+        self.jaccard_weight = jaccard_weight
+
+    def forward(self, logits, targets):
+        probs = torch.sigmoid(logits)
+
+        # BCE
+        pos_weight_tensor = torch.tensor(self.pos_weight).to(logits.device)
+        bce_loss = F.binary_cross_entropy_with_logits(
+            logits, targets, pos_weight=pos_weight_tensor
+        )
+
+        # Jaccard (IoU) Loss
+        probs_flat = probs.view(-1)
+        targets_flat = targets.view(-1)
+
+        intersection = (probs_flat * targets_flat).sum()
+        union = probs_flat.sum() + targets_flat.sum() - intersection
+        jaccard_score = (intersection + self.smooth) / (union + self.smooth)
+        jaccard_loss = 1 - jaccard_score
+
+        return bce_loss + self.jaccard_weight * jaccard_loss
+
+def estimate_pos_loss_weight(data_loader):
+    num_pos = 0
+    num_neg = 0
+    for _, masks in data_loader:
+        num_pos = masks.float().sum().item()
+        num_neg = (1 - masks).float().sum().item()
+
+    pos_weight = num_neg / num_pos
+    return pos_weight

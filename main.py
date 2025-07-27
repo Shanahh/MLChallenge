@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from data import train_test_split_dataset, SegmentationDataset, augment_and_save_data, pad_and_save_data
-from losses import ProbWeightedBCEDiceLoss
+from losses import ProbWeightedBCEDiceLoss, WeightedBCEDiceLoss, estimate_pos_loss_weight, WeightedBCEJaccardLoss
 from models import UNet3
 from trainer import train_model, predict_and_save
 from util import load_dataset
@@ -19,16 +19,16 @@ SOURCE_PATH_AUG_VAL = "dataset/augmentations/validation"
 
 HYPERPARAMS = {
     "regularization": {
-        "weight_decay": 0,          # e.g., 1e-6
-        "dropout_rate_model": 0.0
+        "weight_decay": 5e-7,          # e.g., 1e-6
+        "dropout_rate_model": 0.1
     },
     "training": {
         "learning_rate": 2e-3,
         "validation_set_size": 0.15,
-        "num_epochs": 3,
-        "scheduler_factor": 0.1,
+        "num_epochs": 60,
+        "scheduler_factor": 0.2,
         "scheduler_patience": 10,
-        "batch_size": 16
+        "batch_size": 8
     }
 }
 
@@ -74,7 +74,9 @@ val_loader = DataLoader(
 )
 
 # loss and optimizing
-criterion = ProbWeightedBCEDiceLoss()
+#est_pos_weight = estimate_pos_loss_weight(train_loader)
+#print("Estimated positive weight for loss function: ", est_pos_weight)
+criterion = WeightedBCEJaccardLoss()
 
 optimizer = torch.optim.Adam(
     model.parameters(),

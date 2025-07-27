@@ -190,5 +190,5 @@ class DecoderBlockFinal(nn.Module):
         x = F.relu(self.bn2(self.conv2(x)))
         x = self.dropout(x)
         x = self.final_conv(x)
-        x = torch.sigmoid(x)
+        # x = torch.sigmoid(x)
         return x

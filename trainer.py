@@ -110,7 +110,7 @@ def _validation_phase(model, device, val_loader, criterion):
             # compute different IoU scores
             outputs_np = model_output_to_mask(outputs)
             masks_np = model_output_to_mask(masks)
-            # revert padding to get correct background IoU scores
+            # revert padding to get correct IoU scores
             outputs_np_no_pad = remove_padding_gt(outputs_np)
             masks_np_no_pad = remove_padding_gt(masks_np)
             obj_io_batch, bkg_iou_batch, mean_iou_batch = get_ious(masks_np_no_pad, outputs_np_no_pad)
@@ -200,13 +200,13 @@ def predict_and_save(model, device, model_path, save_dir_path, data_loader, fnam
         prediction_list = []
         for inputs, _ in data_loader:
             inputs = inputs.to(device)  # shape: [B, 4, H, W]
-            outputs = model(inputs)  # shape: [B, 1, H, W], model already outputs probabilities
-            predictions = (outputs > 0.5).float()  # binarize
+            outputs = model(inputs)  # shape: [B, 1, H, W]
+            predictions = model_output_to_mask(outputs)  # shape: [B, H, W]
 
             # Save predictions (each sample)
             for i in range(predictions.size(0)):
-                pred_mask = predictions[i, 0]  # shape: [H, W]
-                mask_np = (pred_mask.cpu().numpy() * 255).astype(np.uint8)
+                pred_mask = predictions[i]  # shape: [H, W]
+                mask_np = pred_mask.cpu().numpy().astype(np.uint8)
                 prediction_list.append(mask_np)
 
         pred_np = np.stack(prediction_list, axis=0)
