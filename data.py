@@ -139,8 +139,8 @@ def _remove_padding_gt(padded_img: np.ndarray) -> np.ndarray:
 def remove_padding_gt(padded_images: np.ndarray) -> np.ndarray:
     """
     Removes padding from multiple 512x512 ground truth masks
-    Input Dim: (batch_size, H, W)
-    Output Dim: (batch_size, H, W)
+    Input Dim: (B, H, W)
+    Output Dim: (B, H, W)
     """
     gts_no_padding = []
     N = padded_images.shape[0]

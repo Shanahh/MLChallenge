@@ -37,8 +37,8 @@ def background_iou(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     Computes the background IoU score over a batch of predictions and ground truth masks.
 
     Parameters:
-        y_true (np.ndarray): Ground truth masks with shape (batch_size, H, W).
-        y_pred (np.ndarray): Predicted masks with shape (batch_size, H, W).
+        y_true (np.ndarray): Ground truth masks with shape (B, H, W).
+        y_pred (np.ndarray): Predicted masks with shape (B, H, W).
 
     Returns:
         float: Mean background IoU over the batch.
@@ -65,7 +65,7 @@ def background_iou(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 def get_ious(y_true: np.ndarray, y_pred: np.ndarray):
     """
     Given labels and prediction values, returns object IoU, background IoU, and mean IoU.
-    Input Dim: (batch_size, H, W)
+    Input Dim: (B, H, W)
     """
     obj_iou_val = object_iou(y_true, y_pred)
     bkg_iou_val = background_iou(y_true, y_pred)
@@ -76,11 +76,11 @@ def model_output_to_mask(output_tensor, threshold=0.5, apply_sigmoid=True):
     """
     Convert model output to binary mask (H x W numpy array)
     Differentiate between raw logit outputs and sigmoid outputs
-    Input Dim: (batch_size, H, W)
-    Output Dim: Returns a binary mask of shape (batch_size, H, W) with values 0 or 1
+    Input Dim: (B, 1, H, W)
+    Output Dim: Returns a binary mask of shape (B, H, W) with values 0 or 1
     """
-    # Output tensor has shape [batch_size, channels, H, W]
-    output_tensor = output_tensor.squeeze(1) # now shape should be [batch_size, H, W] since we have one output channel
+    # Output tensor has shape [B, C, H, W]
+    output_tensor = output_tensor.squeeze(1) # now shape should be [B, H, W] since we have one output channel
     # convert to sigmoid if applicable
     if apply_sigmoid:
         # Apply sigmoid on tensor

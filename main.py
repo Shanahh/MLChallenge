@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 
 from data import train_test_split_dataset, SegmentationDataset, augment_and_save_data, pad_and_save_data
 from losses import ProbWeightedBCEDiceLoss, WeightedBCEDiceLoss, estimate_pos_loss_weight, WeightedBCEJaccardLoss
-from models import UNet3
+from models import UNet3, UNet4
 from trainer import train_model, predict_and_save
 from util import load_dataset
 
@@ -19,15 +19,15 @@ SOURCE_PATH_AUG_VAL = "dataset/augmentations/validation"
 
 HYPERPARAMS = {
     "regularization": {
-        "weight_decay": 5e-7,          # e.g., 1e-6
+        "weight_decay": 1e-6,          # e.g., 1e-6
         "dropout_rate_model": 0.1
     },
     "training": {
         "learning_rate": 2e-3,
         "validation_set_size": 0.15,
-        "num_epochs": 60,
-        "scheduler_factor": 0.2,
-        "scheduler_patience": 10,
+        "num_epochs": 120,
+        "scheduler_factor": 0.5,
+        "scheduler_patience": 6,
         "batch_size": 8
     }
 }
@@ -57,7 +57,7 @@ val_images, val_scrib, val_gt, *_ = load_dataset(
 # create instances
 
 # model
-model = UNet3(dropout_rate=HYPERPARAMS["regularization"]["dropout_rate_model"])
+model = UNet4(dropout_rate=HYPERPARAMS["regularization"]["dropout_rate_model"])
 
 # data loaders
 train_dataset = SegmentationDataset(train_images_aug, train_scrib_aug, train_gt_aug)
@@ -74,7 +74,7 @@ val_loader = DataLoader(
 )
 
 # loss and optimizing
-criterion = WeightedBCEJaccardLoss()
+criterion = WeightedBCEDiceLoss()
 
 optimizer = torch.optim.Adam(
     model.parameters(),

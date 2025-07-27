@@ -20,6 +20,8 @@ def train_model(model, device, train_loader, val_loader, criterion, optimizer, s
     """
     use_cuda = torch.cuda.is_available()
     model = model.to(device)
+    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Total learnable parameters: {total_params}")
 
     best_val_loss = float('inf')
     best_model = model
@@ -33,8 +35,8 @@ def train_model(model, device, train_loader, val_loader, criterion, optimizer, s
     print("using cuda cores: " + str(use_cuda))
 
     for epoch in range(num_epochs):
-        print(f"Epoch {epoch + 1}/{num_epochs}")
         print("-" * NUM_BARS)
+        print(f"Epoch {epoch + 1}/{num_epochs}")
         # training
         epoch_train_loss = _training_phase(model, device, train_loader, criterion, optimizer)
         train_losses.append(epoch_train_loss)
@@ -99,20 +101,20 @@ def _validation_phase(model, device, val_loader, criterion):
     with torch.no_grad():
         for inputs, masks in val_loader:
             # move inputs and masks to gpu or cpu accordingly
-            inputs = inputs.to(device)
-            masks = masks.to(device)
+            inputs = inputs.to(device) # (B, 4, H, W)
+            masks = masks.to(device) # (B, 1, H, W)
             # get model predictions and loss
-            outputs = model(inputs)
+            outputs = model(inputs) # (B, 1, H, W)
             loss = criterion(outputs, masks)
             # compute validation loss value
             batch_size = inputs.size(0)
             val_loss_sum += loss.item() * batch_size # mean value needs to be multiplied with batch size again
             # compute different IoU scores
-            outputs_np = model_output_to_mask(outputs, apply_sigmoid=True)
-            masks_np = model_output_to_mask(masks, apply_sigmoid=False)
+            outputs_np = model_output_to_mask(outputs, apply_sigmoid=True) # (B, H, W)
+            masks_np = model_output_to_mask(masks, apply_sigmoid=False) # (B, H, W)
             # revert padding to get correct IoU scores
-            outputs_np_no_pad = remove_padding_gt(outputs_np)
-            masks_np_no_pad = remove_padding_gt(masks_np)
+            outputs_np_no_pad = remove_padding_gt(outputs_np) # (B, H, W)
+            masks_np_no_pad = remove_padding_gt(masks_np) # (B, H, W)
             obj_io_batch, bkg_iou_batch, mean_iou_batch = get_ious(masks_np_no_pad, outputs_np_no_pad)
             # mean value needs to be multiplied with batch size again
             val_obj_iou += obj_io_batch * batch_size
@@ -217,4 +219,3 @@ def predict_and_save(model, device, model_path, save_dir_path, data_loader, fnam
         )
 
     print("Predictions saved.")
-
