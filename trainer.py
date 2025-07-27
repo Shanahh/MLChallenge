@@ -206,7 +206,7 @@ def predict_and_save(model, device, model_path, save_dir_path, data_loader, fnam
             # Save predictions (each sample)
             for i in range(predictions.size(0)):
                 pred_mask = predictions[i]  # shape: [H, W]
-                mask_np = pred_mask.cpu().numpy().astype(np.uint8)
+                mask_np = pred_mask.astype(np.uint8)
                 prediction_list.append(mask_np)
 
         pred_np = np.stack(prediction_list, axis=0)
