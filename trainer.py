@@ -108,8 +108,8 @@ def _validation_phase(model, device, val_loader, criterion):
             batch_size = inputs.size(0)
             val_loss_sum += loss.item() * batch_size # mean value needs to be multiplied with batch size again
             # compute different IoU scores
-            outputs_np = model_output_to_mask(outputs)
-            masks_np = model_output_to_mask(masks)
+            outputs_np = model_output_to_mask(outputs, apply_sigmoid=True)
+            masks_np = model_output_to_mask(masks, apply_sigmoid=False)
             # revert padding to get correct IoU scores
             outputs_np_no_pad = remove_padding_gt(outputs_np)
             masks_np_no_pad = remove_padding_gt(masks_np)

@@ -81,14 +81,16 @@ def model_output_to_mask(output_tensor, threshold=0.5, apply_sigmoid=True):
     """
     # Output tensor has shape [batch_size, channels, H, W]
     output_tensor = output_tensor.squeeze(1) # now shape should be [batch_size, H, W] since we have one output channel
-    # Convert tensor to numpy ndarray
-    output_np = output_tensor.detach().cpu().numpy()
     # convert to sigmoid if applicable
     if apply_sigmoid:
-        probs = torch.sigmoid(output_np)
+        # Apply sigmoid on tensor
+        probs = torch.sigmoid(output_tensor)
     else:
-        probs = output_np
+        probs = output_tensor
+
+    # Convert to numpy
+    probs_np = probs.detach().cpu().numpy()
 
     # construct mask
-    binary_mask = (probs >= threshold).astype(np.uint8)
+    binary_mask = (probs_np >= threshold).astype(np.uint8)
     return binary_mask

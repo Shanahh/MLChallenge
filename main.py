@@ -74,8 +74,6 @@ val_loader = DataLoader(
 )
 
 # loss and optimizing
-#est_pos_weight = estimate_pos_loss_weight(train_loader)
-#print("Estimated positive weight for loss function: ", est_pos_weight)
 criterion = WeightedBCEJaccardLoss()
 
 optimizer = torch.optim.Adam(
