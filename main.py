@@ -2,8 +2,8 @@ import torch
 from torch.utils.data import DataLoader
 
 from data import train_test_split_dataset, SegmentationDataset, augment_and_save_data, pad_and_save_data
-from losses import ProbWeightedBCEDiceLoss, WeightedBCEDiceLoss, estimate_pos_loss_weight, WeightedBCEJaccardLoss
-from models import UNet3, UNet4
+from losses import WeightedBCEDiceLoss
+from models import UNet4
 from trainer import train_model, predict_and_save
 from util import load_dataset
 
@@ -19,16 +19,20 @@ SOURCE_PATH_AUG_VAL = "dataset/augmentations/validation"
 
 HYPERPARAMS = {
     "regularization": {
-        "weight_decay": 1e-6,          # e.g., 1e-6
+        "weight_decay": 1e-5,          # e.g., 1e-6
         "dropout_rate_model": 0.1
     },
     "training": {
         "learning_rate": 2e-3,
         "validation_set_size": 0.15,
         "num_epochs": 120,
-        "scheduler_factor": 0.5,
-        "scheduler_patience": 6,
         "batch_size": 8
+    },
+    "scheduler": {
+        "one_cycle_scheduler": True,
+        "max_lr": 1e-3,
+        "scheduler_factor": 0.6,
+        "scheduler_patience": 10,
     }
 }
 
@@ -67,6 +71,8 @@ train_loader = DataLoader(
     batch_size=HYPERPARAMS["training"]["batch_size"],
     shuffle=True
 )
+print("batches per epoch: " + str(len(train_loader)))
+
 val_loader = DataLoader(
     val_dataset,
     batch_size=HYPERPARAMS["training"]["batch_size"],
@@ -82,17 +88,27 @@ optimizer = torch.optim.Adam(
     weight_decay=HYPERPARAMS["regularization"]["weight_decay"]
 )
 
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+# different schedulers
+scheduler_plateau = torch.optim.lr_scheduler.ReduceLROnPlateau(
     optimizer,
     mode='min',
-    factor=HYPERPARAMS["training"]["scheduler_factor"],
-    patience=HYPERPARAMS["training"]["scheduler_patience"]
+    factor=HYPERPARAMS["scheduler"]["scheduler_factor"],
+    patience=HYPERPARAMS["scheduler"]["scheduler_patience"]
+)
+
+batches_per_epoch = len(train_loader)
+scheduler_one_cycle = torch.optim.lr_scheduler.OneCycleLR(
+    optimizer,
+    max_lr=HYPERPARAMS["scheduler"]["max_lr"],
+    steps_per_epoch=batches_per_epoch,
+    epochs=HYPERPARAMS["training"]["num_epochs"]
 )
 
 # train model
 best_model_path = train_model(
     model, DEVICE, train_loader, val_loader,
-    criterion, optimizer, scheduler,
+    criterion, optimizer,
+    scheduler_one_cycle if HYPERPARAMS["scheduler"]["one_cycle_scheduler"] else scheduler_plateau,
     HYPERPARAMS["training"]["num_epochs"]
 )
 

@@ -1,10 +1,10 @@
+import copy
 import os
 from datetime import datetime
 
-import torch
-import copy
-from data import remove_padding_gt
 import matplotlib.pyplot as plt
+
+from data import remove_padding_gt
 from evaluation import *
 from util import store_predictions
 
@@ -18,11 +18,16 @@ def train_model(model, device, train_loader, val_loader, criterion, optimizer, s
     Trains the given model and saves the best model and all statistics collected on the validation set, such as training loss,
     validation loss, and IoU scores.
     """
+    # model and training information
     use_cuda = torch.cuda.is_available()
     model = model.to(device)
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Total learnable parameters: {total_params}")
 
+    # scheduler information
+    scheduler_is_one_cycle = isinstance(scheduler, torch.optim.lr_scheduler.OneCycleLR)
+
+    # metrics
     best_val_loss = float('inf')
     best_model = model
     train_losses = []
@@ -38,7 +43,7 @@ def train_model(model, device, train_loader, val_loader, criterion, optimizer, s
         print("-" * NUM_BARS)
         print(f"Epoch {epoch + 1}/{num_epochs}")
         # training
-        epoch_train_loss = _training_phase(model, device, train_loader, criterion, optimizer)
+        epoch_train_loss = _training_phase(model, device, train_loader, criterion, optimizer, scheduler if scheduler_is_one_cycle else None)
         train_losses.append(epoch_train_loss)
 
         # validation
@@ -57,16 +62,16 @@ def train_model(model, device, train_loader, val_loader, criterion, optimizer, s
             best_val_loss = epoch_val_loss
             best_model = copy.deepcopy(model)
 
-        # optimize learning rate if we have a scheduler
-        if scheduler:
+        # optimize learning rate if we have a scheduler which is not a one cycle scheduler
+        if scheduler and not scheduler_is_one_cycle:
             scheduler.step(epoch_val_loss)
 
     # save results
     print("Training finished - saving results...")
-    best_model_path = _save_training_results(best_model, train_losses, val_losses, val_obj_ious, val_bkg_ious, val_mean_ious)#
+    best_model_path = _save_training_results(best_model, train_losses, val_losses, val_obj_ious, val_bkg_ious, val_mean_ious)
     return best_model_path
 
-def _training_phase(model, device, train_loader, criterion, optimizer):
+def _training_phase(model, device, train_loader, criterion, optimizer, one_cycle_scheduler):
     """
     Does one epoch of training and returns the training loss of this epoch
     """
@@ -82,6 +87,9 @@ def _training_phase(model, device, train_loader, criterion, optimizer):
         loss = criterion(outputs, masks)
         loss.backward()
         optimizer.step()
+        # scheduler step if applicable
+        if one_cycle_scheduler:
+            one_cycle_scheduler.step()
         # keep track of training loss
         batch_size = inputs.size(0)
         train_loss_sum += loss.item() * batch_size # loss.item() averages over the entire batch
