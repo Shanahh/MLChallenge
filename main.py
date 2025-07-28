@@ -3,13 +3,16 @@ from torch.utils.data import DataLoader
 
 from data import train_test_split_dataset, SegmentationDataset, augment_and_save_data, pad_and_save_data
 from losses import WeightedBCEDiceLoss
+from lr_finder import LRFinder
 from models import UNet4
 from trainer import train_model, predict_and_save
 from util import load_dataset
+from copy import deepcopy
 
 # constants
 CREATE_NEW_AUGMENTATIONS = False
 SAVE_PREDICTIONS = False
+FIND_LR = False
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 SAVE_PATH_PRED = "dataset/augmentations/validation/predictions"
@@ -25,14 +28,14 @@ HYPERPARAMS = {
     "training": {
         "learning_rate": 2e-3,
         "validation_set_size": 0.15,
-        "num_epochs": 120,
+        "num_epochs": 40,
         "batch_size": 8
     },
     "scheduler": {
         "one_cycle_scheduler": True,
-        "max_lr": 1e-3,
-        "scheduler_factor": 0.6,
-        "scheduler_patience": 10,
+        "max_lr": 6e-3,
+        "scheduler_factor": 0.6, # only relevant if one_cycle_scheduler is False
+        "scheduler_patience": 10, # only relevant if one_cycle_scheduler is False
     }
 }
 
@@ -71,7 +74,6 @@ train_loader = DataLoader(
     batch_size=HYPERPARAMS["training"]["batch_size"],
     shuffle=True
 )
-print("batches per epoch: " + str(len(train_loader)))
 
 val_loader = DataLoader(
     val_dataset,
@@ -104,13 +106,27 @@ scheduler_one_cycle = torch.optim.lr_scheduler.OneCycleLR(
     epochs=HYPERPARAMS["training"]["num_epochs"]
 )
 
+# lr finder
+if FIND_LR:
+    print("Finding optimal learning rate...")
+    model_copy = deepcopy(model)
+    optimizer_copy = torch.optim.Adam(model_copy.parameters(), lr=1e-7)  # Start with a very small LR for the test
+
+    lr_finder = LRFinder(model_copy, optimizer_copy, criterion, DEVICE)
+
+    log_lrs, losses = lr_finder.range_test(train_loader, start_lr=1e-7, end_lr=1)
+    lr_finder.plot()
+    print("LR finder done. Inspect plot and set max_lr accordingly before training.")
+
 # train model
-best_model_path = train_model(
-    model, DEVICE, train_loader, val_loader,
-    criterion, optimizer,
-    scheduler_one_cycle if HYPERPARAMS["scheduler"]["one_cycle_scheduler"] else scheduler_plateau,
-    HYPERPARAMS["training"]["num_epochs"]
-)
+best_model_path = ""
+if not FIND_LR:
+    best_model_path = train_model(
+        model, DEVICE, train_loader, val_loader,
+        criterion, optimizer,
+        scheduler_one_cycle if HYPERPARAMS["scheduler"]["one_cycle_scheduler"] else scheduler_plateau,
+        HYPERPARAMS["training"]["num_epochs"]
+    )
 
 # make and save predictions
 if SAVE_PREDICTIONS:
