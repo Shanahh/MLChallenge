@@ -17,7 +17,7 @@ FIND_LR = False
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 SAVE_PATH_PRED = "../../dataset/augmentations/validation/predictions"
-SOURCE_PATH_TRAIN = "../../dataset/training"
+SOURCE_PATH_TRAIN = "../../dataset/training_knn"
 SOURCE_PATH_AUG_TRAIN = "../../dataset/augmentations/train"
 SOURCE_PATH_AUG_VAL = "../../dataset/augmentations/validation"
 

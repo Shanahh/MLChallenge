@@ -62,7 +62,7 @@ def load_dataset(
         palette (_type_): _description_
     """
 
-    images = _load_images(folder_path, images_dir, "RGB")
+    images = _load_images(folder_path, images_dir, "grayscale")
     scribbles = _load_images(folder_path, scribbles_dir, "grayscale")
     filenames = _get_filenames(folder_path, scribbles_dir)
     if ground_truth_dir is None:
