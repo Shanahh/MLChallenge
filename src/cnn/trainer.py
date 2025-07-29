@@ -4,8 +4,8 @@ from datetime import datetime
 
 import matplotlib.pyplot as plt
 
-from src.cnn_approach.data import remove_padding_gt
-from src.cnn_approach.evaluation import *
+from src.cnn.data import remove_padding_gt
+from src.cnn.evaluation import *
 from src.baseline.util import store_predictions
 
 # constants

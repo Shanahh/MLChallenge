@@ -1,11 +1,11 @@
 import torch
 from torch.utils.data import DataLoader
 
-from src.cnn_approach.data import train_test_split_dataset, SegmentationDataset, augment_and_save_data, pad_and_save_data
-from src.cnn_approach.losses import WeightedBCEDiceLoss
-from src.cnn_approach.lr_finder import LRFinder
-from src.cnn_approach.models import UNet4
-from src.cnn_approach.trainer import train_model, predict_and_save
+from src.cnn.data import train_test_split_dataset, SegmentationDataset, augment_and_save_data, pad_and_save_data
+from src.cnn.losses import WeightedBCEDiceLoss
+from src.cnn.lr_finder import LRFinder
+from src.cnn.models import UNet4
+from src.cnn.trainer import train_model, predict_and_save
 from src.baseline.util import load_dataset
 from copy import deepcopy
 
@@ -16,10 +16,10 @@ SAVE_PREDICTIONS = False
 FIND_LR = False
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-SAVE_PATH_PRED = "../dataset/augmentations/validation/predictions"
-SOURCE_PATH_TRAIN = "../dataset/training"
-SOURCE_PATH_AUG_TRAIN = "../dataset/augmentations/train"
-SOURCE_PATH_AUG_VAL = "../dataset/augmentations/validation"
+SAVE_PATH_PRED = "../../dataset/augmentations/validation/predictions"
+SOURCE_PATH_TRAIN = "../../dataset/training"
+SOURCE_PATH_AUG_TRAIN = "../../dataset/augmentations/train"
+SOURCE_PATH_AUG_VAL = "../../dataset/augmentations/validation"
 
 HYPERPARAMS = {
     "regularization": {
