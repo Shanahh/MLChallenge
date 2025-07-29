@@ -14,7 +14,7 @@ class UNet4(nn.Module):
     """
     The UNet (with 4 Encoder and 4 Decoder Blocks)
     """
-    def __init__(self, dropout_rate):
+    def __init__(self, dropout_rate, apply_sigmoid):
         super().__init__()
         # encoder blocks
         self.enc1 = EncoderBlockGeneric(4, 16, dropout_rate)
@@ -25,7 +25,7 @@ class UNet4(nn.Module):
         self.dec4 = DecoderBlockBottleneck(128, 64, dropout_rate)
         self.dec3 = DecoderBlockGeneric(64, 32, dropout_rate)
         self.dec2 = DecoderBlockGeneric(32, 16, dropout_rate)
-        self.dec1 = DecoderBlockFinal(16, dropout_rate)
+        self.dec1 = DecoderBlockFinal(16, dropout_rate, apply_sigmoid)
 
     def forward(self, x):
         # use encoders and save skip connections
@@ -44,7 +44,7 @@ class UNet3(nn.Module):
     """
     The UNet (with 3 Encoder and 3 Decoder Blocks)
     """
-    def __init__(self, dropout_rate):
+    def __init__(self, dropout_rate, apply_sigmoid):
         super().__init__()
         # encoder blocks
         self.enc1 = EncoderBlockGeneric(4, 16, dropout_rate)
@@ -53,7 +53,7 @@ class UNet3(nn.Module):
         # decoder blocks
         self.dec3 = DecoderBlockBottleneck(64, 32, dropout_rate)
         self.dec2 = DecoderBlockGeneric(32, 16, dropout_rate)
-        self.dec1 = DecoderBlockFinal(16, dropout_rate)
+        self.dec1 = DecoderBlockFinal(16, dropout_rate, apply_sigmoid)
 
     def forward(self, x):
         # use encoders and save skip connections
@@ -70,14 +70,14 @@ class UNet2(nn.Module):
     """
     The UNet (with 2 Encoder and 2 Decoder Blocks)
     """
-    def __init__(self, dropout_rate):
+    def __init__(self, dropout_rate, apply_sigmoid):
         super().__init__()
         # encoder blocks
         self.enc1 = EncoderBlockGeneric(4, 16, dropout_rate)
         self.enc2 = EncoderBlockBottleneck(16, 32, dropout_rate)
         # decoder blocks
         self.dec2 = DecoderBlockBottleneck(32, 16, dropout_rate)
-        self.dec1 = DecoderBlockFinal(16, dropout_rate)
+        self.dec1 = DecoderBlockFinal(16, dropout_rate, apply_sigmoid)
 
     def forward(self, x):
         # use encoders and save skip connections
@@ -173,8 +173,9 @@ class DecoderBlockFinal(nn.Module):
     Generic Decoder Block for the U-Net architecture with 2 convolutional layers
     Instead of having an up-convolutional layer, it includes the final layer with 1x1 convolution
     """
-    def __init__(self, in_channels, dropout_rate):
+    def __init__(self, in_channels, dropout_rate, apply_sigmoid):
         super().__init__()
+        self.sigmoid = apply_sigmoid
         in_chan_skip = 2 * in_channels
         self.conv1 = nn.Conv2d(in_chan_skip, in_channels, kernel_size=KERNEL_SIZE_CONV, padding=PADDING)
         self.bn1 = nn.BatchNorm2d(in_channels)
@@ -190,5 +191,6 @@ class DecoderBlockFinal(nn.Module):
         x = F.relu(self.bn2(self.conv2(x)))
         x = self.dropout(x)
         x = self.final_conv(x)
-        # x = torch.sigmoid(x)
+        if self.apply_sigmoid:
+            x = torch.sigmoid(x)
         return x

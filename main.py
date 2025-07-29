@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 from data import train_test_split_dataset, SegmentationDataset, augment_and_save_data, pad_and_save_data
 from losses import WeightedBCEDiceLoss
 from lr_finder import LRFinder
-from models import UNet4
+from models import UNet4, UNet3
 from trainer import train_model, predict_and_save
 from util import load_dataset
 from copy import deepcopy
@@ -22,20 +22,22 @@ SOURCE_PATH_AUG_VAL = "dataset/augmentations/validation"
 
 HYPERPARAMS = {
     "regularization": {
-        "weight_decay": 1e-5,          # e.g., 1e-6
-        "dropout_rate_model": 0.1
+        "weight_decay": 2e-5,          # e.g., 1e-6
+        "dropout_rate_model": 0.15
     },
     "training": {
-        "learning_rate": 2e-3,
+        "learning_rate": 6e-3,
         "validation_set_size": 0.15,
-        "num_epochs": 40,
-        "batch_size": 8
+        "num_epochs": 60,
+        "batch_size": 8,
+        "loss_pos_weight": 1.0, # the higher, the more the model will be penalized for predicting too much background
+        "apply_sigmoid_in_model": False
     },
     "scheduler": {
-        "one_cycle_scheduler": True,
-        "max_lr": 6e-3,
-        "scheduler_factor": 0.6, # only relevant if one_cycle_scheduler is False
-        "scheduler_patience": 10, # only relevant if one_cycle_scheduler is False
+        "one_cycle_scheduler": False,
+        "max_lr": 6e-3, # only relevant if one_cycle_scheduler is True
+        "scheduler_factor": 0.2, # only relevant if one_cycle_scheduler is False
+        "scheduler_patience": 5, # only relevant if one_cycle_scheduler is False
     }
 }
 
@@ -64,7 +66,7 @@ val_images, val_scrib, val_gt, *_ = load_dataset(
 # create instances
 
 # model
-model = UNet4(dropout_rate=HYPERPARAMS["regularization"]["dropout_rate_model"])
+model = UNet4(dropout_rate=HYPERPARAMS["regularization"]["dropout_rate_model"], apply_sigmoid=HYPERPARAMS["training"]["apply_sigmoid_in_model"])
 
 # data loaders
 train_dataset = SegmentationDataset(train_images_aug, train_scrib_aug, train_gt_aug)
@@ -82,7 +84,7 @@ val_loader = DataLoader(
 )
 
 # loss and optimizing
-criterion = WeightedBCEDiceLoss()
+criterion = WeightedBCEDiceLoss(pos_weight=HYPERPARAMS["training"]["loss_pos_weight"])
 
 optimizer = torch.optim.Adam(
     model.parameters(),

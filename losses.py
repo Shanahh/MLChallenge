@@ -48,7 +48,7 @@ class WeightedSoftIoULoss(nn.Module):
         return loss
 
 class WeightedBCEDiceLoss(nn.Module):
-    def __init__(self, pos_weight=5.0, smooth=1e-6, dice_weight=1.0):
+    def __init__(self, pos_weight=1.0, smooth=1e-6, dice_weight=1.0):
         """
         takes raw logits as input
         pos_weight: float, multiplier for positive class pixels in BCE.
