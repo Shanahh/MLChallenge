@@ -175,7 +175,7 @@ class DecoderBlockFinal(nn.Module):
     """
     def __init__(self, in_channels, dropout_rate, apply_sigmoid):
         super().__init__()
-        self.sigmoid = apply_sigmoid
+        self.apply_sigmoid = apply_sigmoid
         in_chan_skip = 2 * in_channels
         self.conv1 = nn.Conv2d(in_chan_skip, in_channels, kernel_size=KERNEL_SIZE_CONV, padding=PADDING)
         self.bn1 = nn.BatchNorm2d(in_channels)

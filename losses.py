@@ -119,7 +119,7 @@ class ProbWeightedBCEDiceLoss(nn.Module):
 
 
 class WeightedBCEJaccardLoss(nn.Module):
-    def __init__(self, pos_weight=5.0, smooth=1e-6, jaccard_weight=1.0):
+    def __init__(self, pos_weight=1.0, smooth=1e-6, jaccard_weight=1.0):
         """
         pos_weight: emphasis on positive pixels in BCE
         smooth: for numerical stability in Jaccard
