@@ -16,7 +16,7 @@ print("Test mode active: " + str(test_mode))
 
 # Load training dataset
 images_train, scrib_train, gt_train, fnames_train, palette = load_dataset(
-    "dataset/training", "images", "scribbles", "ground_truth"
+    "../../dataset/training", "images", "scribbles", "ground_truth"
 )
 
 # Inference
@@ -41,7 +41,7 @@ print("Store prediction train data...")
 
 # Storing Predictions
 store_predictions(
-    pred_train, "dataset/training", "predictions", fnames_train, palette
+    pred_train, "../../dataset/training", "predictions", fnames_train, palette
 )
 
 # Visualizing model performance
@@ -62,7 +62,7 @@ else:
 
 # Load test dataset
 images_test, scrib_test, fnames_test = load_dataset(
-    "dataset/test", "images", "scribbles"
+    "../../dataset/test", "images", "scribbles"
 )
 
 # Inference
@@ -87,7 +87,7 @@ print("Store prediction test data...")
 
 # Storing segmented images for test dataset.
 store_predictions(
-    pred_test, "dataset/test", "predictions", fnames_test, palette
+    pred_test, "../../dataset/test", "predictions", fnames_test, palette
 )
 
 

@@ -267,12 +267,12 @@ def _augment_triplet(
 
     augmented_triplets = [
         (orig_img, orig_scribble, orig_gt),
-        (crop_img, crop_scribble, crop_gt),
+        #(crop_img, crop_scribble, crop_gt),
         (flip_img, flip_scribble, flip_gt),
         (rotate_img, rotate_scribble, rotate_gt),
-        (color_pers_img, color_pers_scribble, color_pers_gt),
-        (gray_img, gray_scribble, gray_gt),
-        (noise_img, noise_scribble, noise_gt),
+        #(color_pers_img, color_pers_scribble, color_pers_gt),
+        #(gray_img, gray_scribble, gray_gt),
+        #(noise_img, noise_scribble, noise_gt),
     ]
 
     return augmented_triplets

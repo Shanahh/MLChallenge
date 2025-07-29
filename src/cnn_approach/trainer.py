@@ -4,16 +4,16 @@ from datetime import datetime
 
 import matplotlib.pyplot as plt
 
-from data import remove_padding_gt
-from evaluation import *
-from util import store_predictions
+from src.cnn_approach.data import remove_padding_gt
+from src.cnn_approach.evaluation import *
+from src.baseline.util import store_predictions
 
 # constants
-MODEL_DIR_PATH = "models"
-PLOTS_DIR_PATH = "training_plots"
+MODEL_DIR_PATH = "../../models"
+PLOTS_DIR_PATH = "../../training_plots_and_data"
 NUM_BARS = 30
 
-def train_model(model, device, train_loader, val_loader, criterion, optimizer, scheduler, num_epochs):
+def train_model(model, device, train_loader, val_loader, criterion, optimizer, scheduler, num_epochs, save_statistics_and_model):
     """
     Trains the given model and saves the best model and all statistics collected on the validation set, such as training loss,
     validation loss, and IoU scores.
@@ -67,9 +67,9 @@ def train_model(model, device, train_loader, val_loader, criterion, optimizer, s
             scheduler.step(epoch_val_loss)
 
     # save results
-    print("Training finished - saving results...")
-    best_model_path = _save_training_results(best_model, train_losses, val_losses, val_obj_ious, val_bkg_ious, val_mean_ious)
-    return best_model_path
+    if save_statistics_and_model:
+        best_model_path = _save_training_results(best_model, train_losses, val_losses, val_obj_ious, val_bkg_ious, val_mean_ious)
+        return best_model_path
 
 def _training_phase(model, device, train_loader, criterion, optimizer, one_cycle_scheduler):
     """
@@ -161,8 +161,11 @@ def _save_training_plots(save_dir_path, train_losses, val_losses, obj_ious, bkg_
     plt.ylabel('Loss')
     plt.legend()
     plt.grid(True)
-    plt.savefig(os.path.join(save_dir_path, f"loss_plot_{timestamp}.pdf"))
+    full_path_loss_plot = os.path.join(save_dir_path, f"loss_plot_{timestamp}.pdf")
+    plt.savefig(full_path_loss_plot)
     plt.close()
+
+    print(f"Loss plot saved to {full_path_loss_plot}")
 
     plt.figure(figsize=(10, 6))
     plt.plot(epochs, obj_ious, 'g-', label='Object IoU')
@@ -173,8 +176,11 @@ def _save_training_plots(save_dir_path, train_losses, val_losses, obj_ious, bkg_
     plt.ylabel('IoU')
     plt.legend()
     plt.grid(True)
-    plt.savefig(os.path.join(save_dir_path, f"iou_plot_{timestamp}.pdf"))
+    full_path_iou_plot = os.path.join(save_dir_path, f"iou_plot_{timestamp}.pdf")
+    plt.savefig(full_path_iou_plot)
     plt.close()
+
+    print(f"IoU plot saved to {full_path_iou_plot}")
 
 def _store_model(save_dir_path, model, timestamp):
     """
@@ -226,4 +232,4 @@ def predict_and_save(model, device, model_path, save_dir_path, data_loader, fnam
             pred_np, save_dir_path_hd, save_dir, fnames, palette
         )
 
-    print("Predictions saved.")
+    print("Predictions saved")

@@ -1,42 +1,43 @@
 import torch
 from torch.utils.data import DataLoader
 
-from data import train_test_split_dataset, SegmentationDataset, augment_and_save_data, pad_and_save_data
-from losses import WeightedBCEDiceLoss
-from lr_finder import LRFinder
-from models import UNet4, UNet3
-from trainer import train_model, predict_and_save
-from util import load_dataset
+from src.cnn_approach.data import train_test_split_dataset, SegmentationDataset, augment_and_save_data, pad_and_save_data
+from src.cnn_approach.losses import WeightedBCEDiceLoss
+from src.cnn_approach.lr_finder import LRFinder
+from src.cnn_approach.models import UNet4
+from src.cnn_approach.trainer import train_model, predict_and_save
+from src.baseline.util import load_dataset
 from copy import deepcopy
 
 # constants
 CREATE_NEW_AUGMENTATIONS = False
+SAVE_STATISTICS_AND_MODEL = True
 SAVE_PREDICTIONS = False
 FIND_LR = False
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-SAVE_PATH_PRED = "dataset/augmentations/validation/predictions"
-SOURCE_PATH_TRAIN = "dataset/training"
-SOURCE_PATH_AUG_TRAIN = "dataset/augmentations/train"
-SOURCE_PATH_AUG_VAL = "dataset/augmentations/validation"
+SAVE_PATH_PRED = "../dataset/augmentations/validation/predictions"
+SOURCE_PATH_TRAIN = "../dataset/training"
+SOURCE_PATH_AUG_TRAIN = "../dataset/augmentations/train"
+SOURCE_PATH_AUG_VAL = "../dataset/augmentations/validation"
 
 HYPERPARAMS = {
     "regularization": {
-        "weight_decay": 2e-5,          # e.g., 1e-6
-        "dropout_rate_model": 0.15
+        "weight_decay": 1e-6, # 1e-5,  # e.g., 1e-6
+        "dropout_rate_model": 0.05
     },
     "training": {
         "learning_rate": 6e-3,
-        "validation_set_size": 0.15,
-        "num_epochs": 60,
+        "validation_set_size": 0.12, # only relevant if CREATE_NEW_AUGMENTATIONS is true
+        "num_epochs": 2,
         "batch_size": 8,
-        "loss_pos_weight": 1.0, # the higher, the more the model will be penalized for predicting too much background
-        "apply_sigmoid_in_model": False
+        "loss_pos_weight": 2, # the higher, the more the model will be penalized for predicting too much background
+        "apply_sigmoid_in_model": False # leave false unless loss function without sigmoid application
     },
     "scheduler": {
         "one_cycle_scheduler": False,
         "max_lr": 6e-3, # only relevant if one_cycle_scheduler is True
-        "scheduler_factor": 0.2, # only relevant if one_cycle_scheduler is False
+        "scheduler_factor": 0.3, # only relevant if one_cycle_scheduler is False
         "scheduler_patience": 5, # only relevant if one_cycle_scheduler is False
     }
 }
@@ -63,7 +64,7 @@ val_images, val_scrib, val_gt, *_ = load_dataset(
     SOURCE_PATH_AUG_VAL, "images", "scribbles", "ground_truth"
 )
 
-# create instances
+######## create instances
 
 # model
 model = UNet4(dropout_rate=HYPERPARAMS["regularization"]["dropout_rate_model"], apply_sigmoid=HYPERPARAMS["training"]["apply_sigmoid_in_model"])
@@ -118,7 +119,7 @@ if FIND_LR:
 
     log_lrs, losses = lr_finder.range_test(train_loader, start_lr=1e-7, end_lr=1)
     lr_finder.plot()
-    print("LR finder done. Inspect plot and set max_lr accordingly before training.")
+    print("LR finder done. Inspect plot and set lr / max_lr accordingly before training.")
 
 # train model
 best_model_path = ""
@@ -127,7 +128,8 @@ if not FIND_LR:
         model, DEVICE, train_loader, val_loader,
         criterion, optimizer,
         scheduler_one_cycle if HYPERPARAMS["scheduler"]["one_cycle_scheduler"] else scheduler_plateau,
-        HYPERPARAMS["training"]["num_epochs"]
+        HYPERPARAMS["training"]["num_epochs"],
+        SAVE_STATISTICS_AND_MODEL
     )
 
 # make and save predictions
