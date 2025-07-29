@@ -12,8 +12,9 @@ from copy import deepcopy
 # constants
 CREATE_NEW_AUGMENTATIONS = False
 SAVE_STATISTICS_AND_MODEL = True
-SAVE_PREDICTIONS = False
 FIND_LR = False
+DO_TRAIN = False
+MAKE_PREDICTIONS = True
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 SAVE_PATH_PRED = "../../dataset/augmentations/validation/predictions"
@@ -27,9 +28,9 @@ HYPERPARAMS = {
         "dropout_rate_model": 0.05
     },
     "training": {
-        "learning_rate": 6e-3,
+        "learning_rate": 2.5e-2,
         "validation_set_size": 0.12, # only relevant if CREATE_NEW_AUGMENTATIONS is true
-        "num_epochs": 2,
+        "num_epochs": 50,
         "batch_size": 8,
         "loss_pos_weight": 2, # the higher, the more the model will be penalized for predicting too much background
         "apply_sigmoid_in_model": False # leave false unless loss function without sigmoid application
@@ -122,8 +123,8 @@ if FIND_LR:
     print("LR finder done. Inspect plot and set lr / max_lr accordingly before training.")
 
 # train model
-best_model_path = ""
-if not FIND_LR:
+best_model_path = "../../models\model_2025-07-30_01-49-01.pth"
+if DO_TRAIN:
     best_model_path = train_model(
         model, DEVICE, train_loader, val_loader,
         criterion, optimizer,
@@ -133,7 +134,7 @@ if not FIND_LR:
     )
 
 # make and save predictions
-if SAVE_PREDICTIONS:
+if MAKE_PREDICTIONS:
     predict_and_save(
         model, DEVICE, best_model_path,
         SAVE_PATH_PRED, val_loader, fnames2, palette2
