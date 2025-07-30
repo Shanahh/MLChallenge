@@ -178,7 +178,7 @@ HYPERPARAMS = {
     }
 }
 WeightedBCEDiceLoss,
-First time using knn bootstrap approach
+First time using knn ensemble approach
 Basic Augmentations
 mean IoU 78
 
