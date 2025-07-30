@@ -12,9 +12,9 @@ from copy import deepcopy
 # constants
 CREATE_NEW_AUGMENTATIONS = False
 FIND_LR = False
-DO_TRAIN = False
+DO_TRAIN = True
 SAVE_STATISTICS_AND_MODEL = True
-MAKE_PREDICTIONS = True
+MAKE_PREDICTIONS = False
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 SAVE_PATH_PRED = "../../dataset/augmentations/validation/predictions"
@@ -24,7 +24,7 @@ SOURCE_PATH_AUG_VAL = "../../dataset/augmentations/validation"
 
 HYPERPARAMS = {
     "regularization": {
-        "weight_decay": 1e-6, # 1e-5,  # e.g., 1e-6
+        "weight_decay": 5e-7, # 1e-6
         "dropout_rate_model": 0.05
     },
     "training": {
@@ -32,7 +32,8 @@ HYPERPARAMS = {
         "validation_set_size": 0.12, # only relevant if CREATE_NEW_AUGMENTATIONS is true
         "num_epochs": 50,
         "batch_size": 8,
-        "loss_pos_weight": 2, # the higher, the more the model will be penalized for predicting too much background
+        "loss_pos_weight": 1.5, # the higher, the more the model will be penalized for predicting too much background
+        "loss_iou_weight": 1.0,
         "apply_sigmoid_in_model": False # leave false unless loss function without sigmoid application
     },
     "scheduler": {
@@ -68,7 +69,10 @@ val_images, val_scrib, val_gt, *_ = load_dataset(
 ######## create instances
 
 # model
-model = UNet4(dropout_rate=HYPERPARAMS["regularization"]["dropout_rate_model"], apply_sigmoid=HYPERPARAMS["training"]["apply_sigmoid_in_model"])
+model = UNet4(
+    dropout_rate=HYPERPARAMS["regularization"]["dropout_rate_model"],
+    apply_sigmoid=HYPERPARAMS["training"]["apply_sigmoid_in_model"]
+)
 
 # data loaders
 train_dataset = SegmentationDataset(train_images_aug, train_scrib_aug, train_gt_aug)
@@ -86,7 +90,10 @@ val_loader = DataLoader(
 )
 
 # loss and optimizing
-criterion = WeightedBCEDiceLoss(pos_weight=HYPERPARAMS["training"]["loss_pos_weight"])
+criterion = WeightedBCEDiceLoss(
+    pos_weight=HYPERPARAMS["training"]["loss_pos_weight"],
+    dice_weight=HYPERPARAMS["training"]["loss_iou_weight"]
+)
 
 optimizer = torch.optim.Adam(
     model.parameters(),
