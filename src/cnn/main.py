@@ -160,5 +160,5 @@ if MAKE_PREDICTIONS_ON_TEST:
     )
     predict_and_save_from_images(
         model, DEVICE, best_model_path,
-        TARGET_PATH_PRED_TEST, test_images, train_fnames, palette2
+        TARGET_PATH_PRED_TEST, test_images, train_fnames, palette2, remove_padding=True
     )

@@ -235,7 +235,7 @@ def predict_and_save_from_data_loader(model, device, model_path, save_dir_path, 
 
     print("Predictions saved")
 
-def predict_and_save_from_images(model, device, model_path, save_dir_path, images, fnames, palette):
+def predict_and_save_from_images(model, device, model_path, save_dir_path, images, fnames, palette, remove_padding):
     """
     Makes predictions for the data given as an array of images and stores them in a folder in the given path.
     @param images: ndarray of size (N, H, W)
@@ -252,8 +252,10 @@ def predict_and_save_from_images(model, device, model_path, save_dir_path, image
         inputs = inputs.unsqueeze(1)  # shape: [N, 1, H, W]
         inputs = inputs.to(device)
         outputs = model(inputs)  # shape: [N, 1, H, W]
-        predictions = model_output_to_mask(outputs)
+        predictions = model_output_to_mask(outputs) # shape: [N, H, W]
         save_dir_path_hd, save_dir = os.path.split(save_dir_path)
+        if remove_padding:
+            predictions = remove_padding_gt(predictions)
         store_predictions(
             predictions, save_dir_path_hd, save_dir, fnames, palette
         )
