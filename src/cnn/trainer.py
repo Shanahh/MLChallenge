@@ -202,7 +202,7 @@ def _store_model(save_dir_path, model, timestamp):
 
     return full_path
 
-def predict_and_save_from_data_loader(model, device, model_path, save_dir_path, data_loader, fnames, palette):
+def predict_and_save(model, device, model_path, save_dir_path, data_loader, fnames, palette, remove_padding):
     """
     Makes predictions for the data in the data loader and stores them in a folder in the given path.
     """
@@ -219,7 +219,8 @@ def predict_and_save_from_data_loader(model, device, model_path, save_dir_path, 
             inputs = inputs.to(device)  # shape: [B, 1, H, W]
             outputs = model(inputs)  # shape: [B, 1, H, W]
             predictions = model_output_to_mask(outputs)  # shape: [B, H, W]
-
+            if remove_padding:
+                predictions = remove_padding_gt(predictions)
             # Save predictions (each sample)
             for i in range(predictions.shape[0]):
                 pred_mask = predictions[i]  # shape: [H, W]

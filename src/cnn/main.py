@@ -6,7 +6,7 @@ from src.cnn.data import train_test_split_dataset, SegmentationDataset, augment_
 from src.cnn.losses import WeightedBCEDiceLoss
 from src.cnn.lr_finder import LRFinder
 from src.cnn.models import UNet4
-from src.cnn.trainer import train_model, predict_and_save_from_data_loader
+from src.cnn.trainer import train_model, predict_and_save
 from src.baseline.util import load_dataset
 from copy import deepcopy
 
@@ -72,7 +72,7 @@ val_images, val_scrib, val_gt, *_ = load_dataset(
     SOURCE_PATH_AUG_VAL, "images", "scribbles", "ground_truth"
 )
 
-# load test data
+# load test data and pad it
 test_images, test_scrib, *_ = load_dataset(
     SOURCE_PATH_TEST, "images", "scribbles"
 )
@@ -164,14 +164,16 @@ if DO_TRAIN:
 # make and save predictions on validation set
 if MAKE_PREDICTIONS_ON_VAL:
     print("Making predictions on validation set...")
-    predict_and_save_from_data_loader(
+    predict_and_save(
         model, DEVICE, best_model_path,
-        TARGET_PATH_PRED_VAL, val_loader, train_fnames, palette2
+        TARGET_PATH_PRED_VAL, val_loader, train_fnames, palette2,
+        remove_padding=False
     )
 
 if MAKE_PREDICTIONS_ON_TEST:
     print("Making predictions on test set...")
-    predict_and_save_from_data_loader(
+    predict_and_save(
         model, DEVICE, best_model_path,
-        TARGET_PATH_PRED_TEST, test_loader, train_fnames, palette2
+        TARGET_PATH_PRED_TEST, test_loader, train_fnames, palette2,
+        remove_padding=True
     )
