@@ -17,7 +17,7 @@ def train_test_split_dataset(
         images: np.ndarray,
         scribbles: np.ndarray,
         ground_truth: np.ndarray,
-        test_size,
+        validation_size,
         random_seed: int | None = None
 ):
     """
@@ -27,7 +27,7 @@ def train_test_split_dataset(
         images (np.ndarray): (N, H, W, 3) RGB images
         scribbles (np.ndarray): (N, H, W) scribble masks
         ground_truth (np.ndarray): (N, H, W) ground truth masks
-        test_size (float): fraction of data used for testing (default 0.2)
+        validation_size (float): fraction of data used for testing
         random_seed (int or None): seed for reproducibility
 
     Returns:
@@ -42,7 +42,7 @@ def train_test_split_dataset(
     indices = np.arange(N)
     np.random.shuffle(indices)
 
-    split_idx = int(N * (1 - test_size))
+    split_idx = int(N * (1 - validation_size))
 
     train_idx = indices[:split_idx]
     test_idx = indices[split_idx:]

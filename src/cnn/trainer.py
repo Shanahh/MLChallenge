@@ -117,12 +117,13 @@ def _validation_phase(model, device, val_loader, criterion):
             # compute validation loss value
             batch_size = inputs.size(0)
             val_loss_sum += loss.item() * batch_size # mean value needs to be multiplied with batch size again
-            # compute different IoU scores
+            # translate model output to np mask
             outputs_np = model_output_to_mask(outputs, apply_sigmoid=True) # (B, H, W)
             masks_np = model_output_to_mask(masks, apply_sigmoid=False) # (B, H, W)
             # revert padding to get correct IoU scores
             outputs_np_no_pad = remove_padding_gt(outputs_np) # (B, H, W)
             masks_np_no_pad = remove_padding_gt(masks_np) # (B, H, W)
+            # compute different IoU scores
             obj_io_batch, bkg_iou_batch, mean_iou_batch = get_ious(masks_np_no_pad, outputs_np_no_pad)
             # mean value needs to be multiplied with batch size again
             val_obj_iou += obj_io_batch * batch_size
@@ -201,7 +202,7 @@ def _store_model(save_dir_path, model, timestamp):
 
     return full_path
 
-def predict_and_save(model, device, model_path, save_dir_path, data_loader, fnames, palette):
+def predict_and_save_from_data_loader(model, device, model_path, save_dir_path, data_loader, fnames, palette):
     """
     Makes predictions for the data in the data loader and stores them in a folder in the given path.
     """
@@ -230,6 +231,31 @@ def predict_and_save(model, device, model_path, save_dir_path, data_loader, fnam
         save_dir_path_hd, save_dir = os.path.split(save_dir_path)
         store_predictions(
             pred_np, save_dir_path_hd, save_dir, fnames, palette
+        )
+
+    print("Predictions saved")
+
+def predict_and_save_from_images(model, device, model_path, save_dir_path, images, fnames, palette):
+    """
+    Makes predictions for the data given as an array of images and stores them in a folder in the given path.
+    @param images: ndarray of size (N, H, W)
+    """
+    os.makedirs(save_dir_path, exist_ok=True)
+    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.to(device)
+    model.eval()
+
+    print(f"Model loaded from {model_path}, running and saving prediction on {images.shape[0]} samples...")
+
+    with torch.no_grad():
+        inputs = torch.from_numpy(images).float()  # shape: [N, H, W]
+        inputs = inputs.unsqueeze(1)  # shape: [N, 1, H, W]
+        inputs = inputs.to(device)
+        outputs = model(inputs)  # shape: [N, 1, H, W]
+        predictions = model_output_to_mask(outputs)
+        save_dir_path_hd, save_dir = os.path.split(save_dir_path)
+        store_predictions(
+            predictions, save_dir_path_hd, save_dir, fnames, palette
         )
 
     print("Predictions saved")

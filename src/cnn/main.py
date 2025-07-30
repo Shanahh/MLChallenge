@@ -1,26 +1,31 @@
 import torch
+from albumentations.core.type_definitions import Targets
 from torch.utils.data import DataLoader
 
 from src.cnn.data import train_test_split_dataset, SegmentationDataset, augment_and_save_data, pad_and_save_data
 from src.cnn.losses import WeightedBCEDiceLoss
 from src.cnn.lr_finder import LRFinder
 from src.cnn.models import UNet4
-from src.cnn.trainer import train_model, predict_and_save
+from src.cnn.trainer import train_model, predict_and_save_from_data_loader, predict_and_save_from_images
 from src.baseline.util import load_dataset
 from copy import deepcopy
 
-# constants
+# steering cockpit
 CREATE_NEW_AUGMENTATIONS = False
 FIND_LR = False
-DO_TRAIN = True
+DO_TRAIN = False
 SAVE_STATISTICS_AND_MODEL = True
-MAKE_PREDICTIONS = False
+MAKE_PREDICTIONS_ON_VAL = False
+MAKE_PREDICTIONS_ON_TEST = True
 
+# constants
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-SAVE_PATH_PRED = "../../dataset/augmentations/validation/predictions"
+TARGET_PATH_PRED_VAL = "../../dataset/augmentations/validation/predictions"
+TARGET_PATH_PRED_TEST = "../../dataset/test_knn/predictions"
 SOURCE_PATH_TRAIN = "../../dataset/training_knn"
 SOURCE_PATH_AUG_TRAIN = "../../dataset/augmentations/train"
 SOURCE_PATH_AUG_VAL = "../../dataset/augmentations/validation"
+SOURCE_PATH_TEST = "../../dataset/test_knn"
 
 HYPERPARAMS = {
     "regularization": {
@@ -51,14 +56,14 @@ if CREATE_NEW_AUGMENTATIONS:
         SOURCE_PATH_TRAIN, "images", "scribbles", "ground_truth"
     )
     # split data
-    (train_images, train_scribbles, train_gt), (test_images, test_scribbles, test_gt) \
-        = train_test_split_dataset(images, scrib, gt, test_size=HYPERPARAMS["training"]["validation_set_size"])
+    (train_images, train_scribbles, train_gt), (val_images, val_scribbles, val_gt) \
+        = train_test_split_dataset(images, scrib, gt, validation_size=HYPERPARAMS["training"]["validation_set_size"])
     # augment
     augment_and_save_data(train_images, train_scribbles, train_gt, palette, SOURCE_PATH_AUG_TRAIN)
-    pad_and_save_data(test_images, test_scribbles, test_gt, palette, SOURCE_PATH_AUG_VAL)
+    pad_and_save_data(val_images, val_scribbles, val_gt, palette, SOURCE_PATH_AUG_VAL)
 
 # load augmented training data
-train_images_aug, train_scrib_aug, train_gt_aug, fnames2, palette2 = load_dataset(
+train_images_aug, train_scrib_aug, train_gt_aug, train_fnames, palette2 = load_dataset(
     SOURCE_PATH_AUG_TRAIN, "images", "scribbles", "ground_truth"
 )
 
@@ -140,9 +145,20 @@ if DO_TRAIN:
         SAVE_STATISTICS_AND_MODEL
     )
 
-# make and save predictions
-if MAKE_PREDICTIONS:
-    predict_and_save(
+# make and save predictions on validation set
+if MAKE_PREDICTIONS_ON_VAL:
+    print("Making predictions on validation set...")
+    predict_and_save_from_data_loader(
         model, DEVICE, best_model_path,
-        SAVE_PATH_PRED, val_loader, fnames2, palette2
+        TARGET_PATH_PRED_VAL, val_loader, train_fnames, palette2
+    )
+
+if MAKE_PREDICTIONS_ON_TEST:
+    print("Making predictions on test set...")
+    test_images, test_scrib, test_fnames = load_dataset(
+        SOURCE_PATH_TEST, "images", "scribbles"
+    )
+    predict_and_save_from_images(
+        model, DEVICE, best_model_path,
+        TARGET_PATH_PRED_TEST, test_images, train_fnames, palette2
     )

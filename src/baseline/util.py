@@ -42,12 +42,14 @@ def load_dataset(
     folder_path: str,
     images_dir: str,
     scribbles_dir: str,
-    ground_truth_dir: str | None = None
+    ground_truth_dir: str | None = None,
+    images_are_rgb: bool = False,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, Any]:
     """
     Load images, scribbles, and ground truth masks from a dataset folder.
     
     Args:
+        images_are_rgb: Whether images are in RGB format or Grayscale format.
         folder_path (str): Path to the dataset folder (e.g., 'dataset/training').
         images_dir (str): folder name for images.
         scribbles_dir (str): folder name for scribbles.
@@ -61,8 +63,10 @@ def load_dataset(
         filenames (list[str]): List of filenames for storing predictions
         palette (_type_): _description_
     """
-
-    images = _load_images(folder_path, images_dir, "grayscale")
+    if images_are_rgb:
+        images = _load_images(folder_path, images_dir, "rgb")
+    else:
+        images = _load_images(folder_path, images_dir, "grayscale")
     scribbles = _load_images(folder_path, scribbles_dir, "grayscale")
     filenames = _get_filenames(folder_path, scribbles_dir)
     if ground_truth_dir is None:
