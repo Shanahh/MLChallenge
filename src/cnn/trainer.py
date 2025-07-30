@@ -235,11 +235,12 @@ def predict_and_save_from_data_loader(model, device, model_path, save_dir_path, 
 
     print("Predictions saved")
 
-def predict_and_save_from_images(model, device, model_path, save_dir_path, images, fnames, palette, remove_padding):
-    """
+"""
+def predict_and_save_from_images_scribbles(model, device, model_path, save_dir_path, images, scribbles, fnames, palette, remove_padding):
+    \"""
     Makes predictions for the data given as an array of images and stores them in a folder in the given path.
     @param images: ndarray of size (N, H, W)
-    """
+    \"""
     os.makedirs(save_dir_path, exist_ok=True)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.to(device)
@@ -248,9 +249,9 @@ def predict_and_save_from_images(model, device, model_path, save_dir_path, image
     print(f"Model loaded from {model_path}, running and saving prediction on {images.shape[0]} samples...")
 
     with torch.no_grad():
-        inputs = torch.from_numpy(images).float()  # shape: [N, H, W]
-        inputs = inputs.unsqueeze(1)  # shape: [N, 1, H, W]
-        inputs = inputs.to(device)
+        input_images = torch.from_numpy(images).float()  # shape: [N, H, W]
+        input_images = input_images.unsqueeze(1)  # shape: [N, 1, H, W]
+        input_images = input_images.to(device)
         outputs = model(inputs)  # shape: [N, 1, H, W]
         predictions = model_output_to_mask(outputs) # shape: [N, H, W]
         save_dir_path_hd, save_dir = os.path.split(save_dir_path)
@@ -261,3 +262,4 @@ def predict_and_save_from_images(model, device, model_path, save_dir_path, image
         )
 
     print("Predictions saved")
+"""

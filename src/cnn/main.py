@@ -1,12 +1,12 @@
 import torch
-from albumentations.core.type_definitions import Targets
 from torch.utils.data import DataLoader
 
-from src.cnn.data import train_test_split_dataset, SegmentationDataset, augment_and_save_data, pad_and_save_data
+from src.cnn.data import train_test_split_dataset, SegmentationDataset, augment_and_save_data, pad_and_save_data, \
+    pad_and_return_data
 from src.cnn.losses import WeightedBCEDiceLoss
 from src.cnn.lr_finder import LRFinder
 from src.cnn.models import UNet4
-from src.cnn.trainer import train_model, predict_and_save_from_data_loader, predict_and_save_from_images
+from src.cnn.trainer import train_model, predict_and_save_from_data_loader
 from src.baseline.util import load_dataset
 from copy import deepcopy
 
@@ -67,9 +67,17 @@ train_images_aug, train_scrib_aug, train_gt_aug, train_fnames, palette2 = load_d
     SOURCE_PATH_AUG_TRAIN, "images", "scribbles", "ground_truth"
 )
 
+# load validation data
 val_images, val_scrib, val_gt, *_ = load_dataset(
     SOURCE_PATH_AUG_VAL, "images", "scribbles", "ground_truth"
 )
+
+# load test data
+test_images, test_scrib, *_ = load_dataset(
+    SOURCE_PATH_TEST, "images", "scribbles"
+)
+dummy_test_gt = deepcopy(test_images)
+test_images_pad, test_scrib_pad, dummy_test_gt_pad = pad_and_return_data(test_images, test_scrib, dummy_test_gt)
 
 ######## create instances
 
@@ -82,6 +90,8 @@ model = UNet4(
 # data loaders
 train_dataset = SegmentationDataset(train_images_aug, train_scrib_aug, train_gt_aug)
 val_dataset = SegmentationDataset(val_images, val_scrib, val_gt)
+test_dataset = SegmentationDataset(test_images_pad, test_scrib_pad, dummy_test_gt_pad) # dummy s.t. data loader works in prediction
+
 train_loader = DataLoader(
     train_dataset,
     batch_size=HYPERPARAMS["training"]["batch_size"],
@@ -90,6 +100,12 @@ train_loader = DataLoader(
 
 val_loader = DataLoader(
     val_dataset,
+    batch_size=HYPERPARAMS["training"]["batch_size"],
+    shuffle=False
+)
+
+test_loader = DataLoader(
+    test_dataset,
     batch_size=HYPERPARAMS["training"]["batch_size"],
     shuffle=False
 )
@@ -155,10 +171,7 @@ if MAKE_PREDICTIONS_ON_VAL:
 
 if MAKE_PREDICTIONS_ON_TEST:
     print("Making predictions on test set...")
-    test_images, test_scrib, test_fnames = load_dataset(
-        SOURCE_PATH_TEST, "images", "scribbles"
-    )
-    predict_and_save_from_images(
+    predict_and_save_from_data_loader(
         model, DEVICE, best_model_path,
-        TARGET_PATH_PRED_TEST, test_images, train_fnames, palette2, remove_padding=True
+        TARGET_PATH_PRED_TEST, test_loader, train_fnames, palette2
     )

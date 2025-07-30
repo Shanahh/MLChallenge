@@ -269,7 +269,7 @@ def _create_data_paths(save_path):
 
 def pad_and_save_data(images, scribbles, ground_truths, palette, save_path):
     """
-    Saves validation data
+    Saves padded data
     """
     img_path, scrib_path, gt_path = _create_data_paths(save_path)
 
@@ -278,6 +278,15 @@ def pad_and_save_data(images, scribbles, ground_truths, palette, save_path):
     ground_truths_padded = np.stack([_pad_to_512(gt) for gt in ground_truths], axis=0)
     padded_triplets = [(img, scrib, gt) for img, scrib, gt in zip(images_padded, scribbles_padded, ground_truths_padded)]
     _save_triplets(padded_triplets, img_path, scrib_path, gt_path, palette)
+
+def pad_and_return_data(images, scribbles, ground_truths):
+    """
+    Returns padded data
+    """
+    images_padded = np.stack([_pad_to_512(img) for img in images], axis=0)
+    scribbles_padded = np.stack([_pad_to_512(scrib, pad_value=255) for scrib in scribbles], axis=0)
+    ground_truths_padded = np.stack([_pad_to_512(gt) for gt in ground_truths], axis=0)
+    return images_padded, scribbles_padded, ground_truths_padded
 
 def augment_and_save_data(images, scribbles, ground_truths, palette, save_path):
     """
