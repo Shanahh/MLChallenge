@@ -76,4 +76,7 @@ Collection of Hyperparameters:
         Number of Channels
         (kernel size)
 
+Third attempt:
+
+Take CNN from second attempt but use KNN results for training -> begin experimenting with pseudo labels and ensemble models
 
