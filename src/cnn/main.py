@@ -11,9 +11,9 @@ from copy import deepcopy
 
 # constants
 CREATE_NEW_AUGMENTATIONS = False
-SAVE_STATISTICS_AND_MODEL = True
 FIND_LR = False
 DO_TRAIN = False
+SAVE_STATISTICS_AND_MODEL = True
 MAKE_PREDICTIONS = True
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

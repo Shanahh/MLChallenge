@@ -109,7 +109,7 @@ def _validation_phase(model, device, val_loader, criterion):
     with torch.no_grad():
         for inputs, masks in val_loader:
             # move inputs and masks to gpu or cpu accordingly
-            inputs = inputs.to(device) # (B, 4, H, W)
+            inputs = inputs.to(device) # (B, 1, H, W)
             masks = masks.to(device) # (B, 1, H, W)
             # get model predictions and loss
             outputs = model(inputs) # (B, 1, H, W)
@@ -215,7 +215,7 @@ def predict_and_save(model, device, model_path, save_dir_path, data_loader, fnam
     with torch.no_grad():
         prediction_list = []
         for inputs, _ in data_loader:
-            inputs = inputs.to(device)  # shape: [B, 4, H, W]
+            inputs = inputs.to(device)  # shape: [B, 1, H, W]
             outputs = model(inputs)  # shape: [B, 1, H, W]
             predictions = model_output_to_mask(outputs)  # shape: [B, H, W]
 
