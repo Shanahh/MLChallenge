@@ -179,10 +179,19 @@ HYPERPARAMS = {
 }
 WeightedBCEDiceLoss,
 First time using knn ensemble approach
+input knn3 Set
 Basic Augmentations
 mean IoU 78
 
 For future approaches
 https://www.sciencedirect.com/science/article/abs/pii/S003132032200406X?utm_source=chatgpt.com
 https://arxiv.org/abs/2010.09713?utm_source=chatgpt.com
+
+loss_plot_2025-08-01_16-49-11.pdf
+
+Same as before,
+but input is knn53 set
+mean IoU 77
+
+Not a big difference but seems like less variance across validation sets (?)
 
