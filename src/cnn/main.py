@@ -68,12 +68,12 @@ train_images_aug, train_scrib_aug, train_gt_aug, train_fnames, palette2 = load_d
 )
 
 # load validation data
-val_images, val_scrib, val_gt, *_ = load_dataset(
+val_images, val_scrib, val_gt, val_fnames, *_ = load_dataset(
     SOURCE_PATH_AUG_VAL, "images", "scribbles", "ground_truth"
 )
 
 # load test data and pad it
-test_images, test_scrib, *_ = load_dataset(
+test_images, test_scrib, test_fnames = load_dataset(
     SOURCE_PATH_TEST, "images", "scribbles"
 )
 dummy_test_gt = deepcopy(test_images)
@@ -166,7 +166,7 @@ if MAKE_PREDICTIONS_ON_VAL:
     print("Making predictions on validation set...")
     predict_and_save(
         model, DEVICE, best_model_path,
-        TARGET_PATH_PRED_VAL, val_loader, train_fnames, palette2,
+        TARGET_PATH_PRED_VAL, val_loader, val_fnames, palette2,
         remove_padding=False
     )
 
@@ -174,6 +174,6 @@ if MAKE_PREDICTIONS_ON_TEST:
     print("Making predictions on test set...")
     predict_and_save(
         model, DEVICE, best_model_path,
-        TARGET_PATH_PRED_TEST, test_loader, train_fnames, palette2,
+        TARGET_PATH_PRED_TEST, test_loader, test_fnames, palette2,
         remove_padding=True
     )

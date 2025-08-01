@@ -155,6 +155,13 @@ def segment_with_knn(
     # Reshape to (H, W)
     return predicted_mask.reshape(H, W)
 
+def safe_segment_with_knn(image, scribble, k):
+    """Adjust k if there are fewer labeled pixels than k"""
+    num_labeled = np.sum(scribble != 255)
+    if num_labeled < k:
+        print(f"Warning: Only {num_labeled} labeled pixels. Reducing k from {k} to {num_labeled}")
+        k = num_labeled if num_labeled > 0 else 1
+    return segment_with_knn(image, scribble, k=k)
 
 ######### Methods for visualization
 

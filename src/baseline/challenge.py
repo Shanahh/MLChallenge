@@ -3,16 +3,16 @@ import numpy as np
 
 from util import load_dataset
 from util import store_predictions
-from util import segment_with_knn
+from util import safe_segment_with_knn
 from util import visualize
 
 ######### Just for testing purposes
 
-test_mode = False
-predict_on_train = True
-predict_on_test = False
-k_val = 3
-image_number = 5
+test_mode = True
+predict_on_train = False
+predict_on_test = True
+k_val = 53
+image_number = "2010_000685"
 print("Test mode active: " + str(test_mode))
 
 ######### Training dataset
@@ -29,17 +29,23 @@ if predict_on_train:
     print("Start prediction train data...")
     if not test_mode:
         pred_train = np.stack(
-            [segment_with_knn(image, scribble, k=k_val)
+            [safe_segment_with_knn(image, scribble, k=k_val)
              for image, scribble in zip(images_train, scrib_train)],
             axis=0
         )
-    else:
-        img = images_train[image_number]
-        scrib = scrib_train[image_number]
+    else: # test mode
+        try:
+            img_idx = fnames_train.index(image_number + ".png")
+        except ValueError:
+            raise ValueError(f"Image name {image_number}.png not found in training filenames.")
+
+        img = images_train[img_idx]
+        scrib = scrib_train[img_idx]
         pred_train = np.stack(
-            [segment_with_knn(img, scrib, k=k_val)],
+            [safe_segment_with_knn(img, scrib, k=k_val)],
             axis=0
         )
+        fnames_train = [fname.replace(".jpg", f"_k_{k_val}.jpg") for fname in fnames_train]
 
     print("Store prediction train data...")
 
@@ -55,7 +61,7 @@ if predict_on_train:
             images_train[vis_index], scrib_train[vis_index],
             gt_train[vis_index], pred_train[vis_index]
         )
-    else:
+    else: # test mode
         vis_index = image_number
         visualize(
             images_train[vis_index], scrib_train[vis_index],
@@ -75,23 +81,29 @@ if predict_on_test:
     print("Start prediction test data...")
     if not test_mode:
         pred_test = np.stack(
-            [segment_with_knn(image, scribble, k=k_val)
+            [safe_segment_with_knn(image, scribble, k=k_val)
              for image, scribble in zip(images_test, scrib_test)],
             axis=0
         )
-    else:
-        img = images_test[image_number]
-        scrib = scrib_test[image_number]
+    else: # test mode
+        try:
+            img_idx = fnames_test.index(image_number + ".png")
+        except ValueError:
+            raise ValueError(f"Image name {image_number}.png not found in test filenames.")
+
+        img = images_test[img_idx]
+        scrib = scrib_test[img_idx]
         pred_test = np.stack(
-            [segment_with_knn(img, scrib, k=k_val)],
+            [safe_segment_with_knn(img, scrib, k=k_val)],
             axis=0
         )
+        fnames_test = [fname.replace(".jpg", f"_k_{k_val}.jpg") for fname in fnames_test]
 
     print("Store prediction test data...")
 
     # Storing segmented images for test dataset.
     store_predictions(
-        pred_test, "../../dataset/test_knn", "images", fnames_test, palette
+        pred_test, "../../dataset/experiments", "images", fnames_test, palette
     )
 
 
