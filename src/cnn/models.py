@@ -10,6 +10,40 @@ STRIDE_RESAMPLE = 2
 PADDING = 1
 FINAL_CHANNELS = 1
 
+class UNet5(nn.Module):
+    """
+    The UNet (with 5 Encoder and 5 Decoder Blocks)
+    """
+    def __init__(self, dropout_rate, apply_sigmoid):
+        super().__init__()
+        # encoder blocks
+        self.enc1 = EncoderBlockGeneric(2, 16, dropout_rate)
+        self.enc2 = EncoderBlockGeneric(16, 32, dropout_rate)
+        self.enc3 = EncoderBlockGeneric(32, 64, dropout_rate)
+        self.enc4 = EncoderBlockGeneric(64, 128, dropout_rate)
+        self.enc5 = EncoderBlockBottleneck(128, 256, dropout_rate)
+        # decoder blocks
+        self.dec5 = DecoderBlockBottleneck(256, 128, dropout_rate)
+        self.dec4 = DecoderBlockGeneric(128, 64, dropout_rate)
+        self.dec3 = DecoderBlockGeneric(64, 32, dropout_rate)
+        self.dec2 = DecoderBlockGeneric(32, 16, dropout_rate)
+        self.dec1 = DecoderBlockFinal(16, dropout_rate, apply_sigmoid)
+
+    def forward(self, x):
+        # use encoders and save skip connections
+        x, skip1 = self.enc1(x)
+        x, skip2 = self.enc2(x)
+        x, skip3 = self.enc3(x)
+        x, skip4 = self.enc4(x)
+        x = self.enc5(x)
+        # use decoders and use skip connections
+        x = self.dec5(x)
+        x = self.dec4(x, skip4)
+        x = self.dec3(x, skip3)
+        x = self.dec2(x, skip2)
+        x = self.dec1(x, skip1)
+        return x
+
 class UNet4(nn.Module):
     """
     The UNet (with 4 Encoder and 4 Decoder Blocks)
