@@ -9,10 +9,10 @@ from util import visualize
 ######### Just for testing purposes
 
 test_mode = True
-predict_on_train = False
-predict_on_test = True
+predict_on_train = True
+predict_on_test = False
 k_val = 53
-image_number = "2010_000685"
+image_number = "2008_005541"
 print("Test mode active: " + str(test_mode))
 
 ######### Training dataset
@@ -41,17 +41,24 @@ if predict_on_train:
 
         img = images_train[img_idx]
         scrib = scrib_train[img_idx]
+        ###
+        print("Scribble annotations:")
+        unique, counts = np.unique(scrib[scrib != 255], return_counts=True)
+        print(dict(zip(unique, counts)))
+        ###
         pred_train = np.stack(
             [safe_segment_with_knn(img, scrib, k=k_val)],
             axis=0
         )
-        fnames_train = [fname.replace(".jpg", f"_k_{k_val}.jpg") for fname in fnames_train]
+        original_fname = fnames_train[img_idx]
+        basename = original_fname.replace(".jpg", "").replace(".png", "")
+        fnames_train = [f"{basename}_k_{k_val}.png"]
 
     print("Store prediction train data...")
 
     # Storing Predictions
     store_predictions(
-        pred_train, "../../dataset/training_knn", "images", fnames_train, palette
+        pred_train, "../../dataset/experiments", "images", fnames_train, palette
     )
 
     # Visualizing model performance
@@ -60,12 +67,6 @@ if predict_on_train:
         visualize(
             images_train[vis_index], scrib_train[vis_index],
             gt_train[vis_index], pred_train[vis_index]
-        )
-    else: # test mode
-        vis_index = image_number
-        visualize(
-            images_train[vis_index], scrib_train[vis_index],
-            gt_train[vis_index], pred_train[0]
         )
 
 ######### Test dataset
@@ -93,11 +94,18 @@ if predict_on_test:
 
         img = images_test[img_idx]
         scrib = scrib_test[img_idx]
+        ###
+        print("Scribble annotations:")
+        unique, counts = np.unique(scrib[scrib != 255], return_counts=True)
+        print(dict(zip(unique, counts)))
+        ###
         pred_test = np.stack(
             [safe_segment_with_knn(img, scrib, k=k_val)],
             axis=0
         )
-        fnames_test = [fname.replace(".jpg", f"_k_{k_val}.jpg") for fname in fnames_test]
+        original_fname = fnames_test[img_idx]
+        basename = original_fname.replace(".jpg", "").replace(".png", "")
+        fnames_test = [f"{basename}_k_{k_val}.png"]
 
     print("Store prediction test data...")
 

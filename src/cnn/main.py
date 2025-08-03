@@ -1,28 +1,29 @@
+from copy import deepcopy
+
 import torch
 from torch.utils.data import DataLoader
 
+from src.baseline.util import load_dataset
 from src.cnn.data import train_test_split_dataset, SegmentationDataset, augment_and_save_data, pad_and_save_data, \
     pad_and_return_data
 from src.cnn.losses import WeightedBCEDiceLoss
 from src.cnn.lr_finder import LRFinder
 from src.cnn.models import UNet4
 from src.cnn.trainer import train_model, predict_and_save
-from src.baseline.util import load_dataset
-from copy import deepcopy
 
 # steering cockpit
 CREATE_NEW_AUGMENTATIONS = False
 FIND_LR = False
-DO_TRAIN = False
+DO_TRAIN = True
 SAVE_STATISTICS_AND_MODEL = True
 MAKE_PREDICTIONS_ON_VAL = False
-MAKE_PREDICTIONS_ON_TEST = True
+MAKE_PREDICTIONS_ON_TEST = False
 
 # constants
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 TARGET_PATH_PRED_VAL = "../../dataset/augmentations/validation/predictions"
 TARGET_PATH_PRED_TEST = "../../dataset/test_knn/predictions"
-SOURCE_PATH_TRAIN = "../../dataset/training_knn"
+SOURCE_PATH_TRAIN = "../../dataset/training_knn_k_53"
 SOURCE_PATH_AUG_TRAIN = "../../dataset/augmentations/train"
 SOURCE_PATH_AUG_VAL = "../../dataset/augmentations/validation"
 SOURCE_PATH_TEST = "../../dataset/test_knn"
@@ -39,7 +40,7 @@ HYPERPARAMS = {
         "batch_size": 8,
         "loss_pos_weight": 1.5, # the higher, the more the model will be penalized for predicting too much background
         "loss_iou_weight": 1.0,
-        "apply_sigmoid_in_model": False # leave false unless loss function without sigmoid application
+        "apply_sigmoid_in_model": False # leave False unless loss function without sigmoid application
     },
     "scheduler": {
         "one_cycle_scheduler": False,
@@ -151,7 +152,7 @@ if FIND_LR:
     print("LR finder done. Inspect plot and set lr / max_lr accordingly before training.")
 
 # train model
-best_model_path = "../../models\model_2025-07-30_01-49-01.pth"
+best_model_path = "../../models\model_2025-07-30_01-49-01.pth" # 78 avg. mIoU on validation set
 if DO_TRAIN:
     best_model_path = train_model(
         model, DEVICE, train_loader, val_loader,
