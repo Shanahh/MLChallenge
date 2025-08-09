@@ -5,16 +5,16 @@ from torch.utils.data import DataLoader
 
 from src.baseline.util import load_dataset, load_dataset_grayscale_only
 from src.cnn.data import train_test_split_dataset, SegmentationDataset, augment_and_save_data, pad_and_save_data, \
-    pad_and_return_data
+    pad_and_return_data, SegmentationDatasetExt
 from src.cnn.losses import WeightedBCEDiceLoss
 from src.cnn.lr_finder import LRFinder
 from src.cnn.models import UNet4
 from src.cnn.trainer import train_model, predict_and_save
 
 # steering cockpit
-CREATE_NEW_AUGMENTATIONS = True
+CREATE_NEW_AUGMENTATIONS = False
 FIND_LR = False
-DO_TRAIN = False
+DO_TRAIN = True
 SAVE_STATISTICS_AND_MODEL = True
 MAKE_PREDICTIONS_ON_VAL = False
 MAKE_PREDICTIONS_ON_TEST = False
@@ -68,12 +68,12 @@ if CREATE_NEW_AUGMENTATIONS:
     pad_and_save_data(val_images_rgb, val_images_gray, val_scribbles, val_gt, palette, SOURCE_PATH_AUG_VAL)
 
 # load augmented training data
-train_images_aug, train_scrib_aug, train_gt_aug, train_fnames, palette2 = load_dataset(
+train_images_aug_rgb, train_images_aug_gray, train_scrib_aug, train_gt_aug, train_fnames, palette2 = load_dataset(
     SOURCE_PATH_AUG_TRAIN, "images", "scribbles", "masks", "ground_truth"
 )
 
 # load validation data
-val_images_rgb, val_scrib, val_gt, val_fnames, *_ = load_dataset(
+val_images_rgb, val_images_gray, val_scrib, val_gt, val_fnames, *_ = load_dataset(
     SOURCE_PATH_AUG_VAL, "images", "scribbles", "masks", "ground_truth"
 )
 
@@ -95,8 +95,8 @@ model = UNet4(
 )
 
 # data loaders
-train_dataset = SegmentationDataset(train_images_aug, train_scrib_aug, train_gt_aug)
-val_dataset = SegmentationDataset(val_images_rgb, val_scrib, val_gt)
+train_dataset = SegmentationDatasetExt(train_images_aug_rgb, train_images_aug_gray, train_scrib_aug, train_gt_aug)
+val_dataset = SegmentationDatasetExt(val_images_rgb, val_images_gray, val_scrib, val_gt)
 #test_dataset = SegmentationDataset(test_images_pad, test_scrib_pad, dummy_test_gt_pad) # dummy s.t. data loader works in prediction
 
 train_loader = DataLoader(
