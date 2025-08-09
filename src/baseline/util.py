@@ -77,6 +77,42 @@ def load_dataset(
 
     return rgb_images, scribbles, ground_truth, filenames, palette
 
+
+def load_dataset_grayscale_only(
+        folder_path: str,
+        grayscale_images_dir: str,
+        scribbles_dir: str,
+        ground_truth_dir: str | None = None,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[str], Any]:
+    """
+    Load grayscale images, scribbles, and ground truth masks from a dataset folder.
+
+    Args:
+        folder_path (str): Path to the dataset folder (e.g., 'dataset/training').
+        grayscale_images_dir (str): folder name for grayscale images.
+        scribbles_dir (str): folder name for scribbles.
+        ground_truth_dir (str, optional): folder name for ground truth images.
+
+    Returns:
+        grayscale_images (np.ndarray): Array of shape (N, H, W) with grayscale images.
+        scribbles (np.ndarray): Array of shape (N, H, W) with scribble labels.
+        ground_truth (np.ndarray | None): Array of shape (N, H, W) with class labels if ground_truth_dir is provided, else None.
+        filenames (list[str]): List of filenames for storing predictions.
+        palette (optional): Palette info if ground_truth_dir provided, else None.
+    """
+    grayscale_images = _load_images(folder_path, grayscale_images_dir, "grayscale")
+    scribbles = _load_images(folder_path, scribbles_dir, "grayscale")
+    filenames = _get_filenames(folder_path, scribbles_dir)
+
+    ground_truth = None
+    palette = None
+    if ground_truth_dir is not None:
+        ground_truth = _load_images(folder_path, ground_truth_dir, None)
+        palette = _get_palette(folder_path, ground_truth_dir, filenames[0])
+
+    return grayscale_images, scribbles, ground_truth, filenames, palette
+
+
 def store_predictions(
     predictions: np.ndarray,
     folder_path: str,
