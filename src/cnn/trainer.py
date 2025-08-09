@@ -109,7 +109,7 @@ def _validation_phase(model, device, val_loader, criterion):
     with torch.no_grad():
         for inputs, masks in val_loader:
             # move inputs and masks to gpu or cpu accordingly
-            inputs = inputs.to(device) # (B, 1, H, W)
+            inputs = inputs.to(device) # (B, 4, H, W)
             masks = masks.to(device) # (B, 1, H, W)
             # get model predictions and loss
             outputs = model(inputs) # (B, 1, H, W)

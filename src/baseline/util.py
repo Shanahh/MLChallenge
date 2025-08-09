@@ -40,18 +40,18 @@ def _get_filenames(folder_path, scribbles_dir):
 
 def load_dataset(
     folder_path: str,
-    images_dir: str,
+    rgb_images_dir: str,
     scribbles_dir: str,
+    grayscale_images_dir: str | None = None,
     ground_truth_dir: str | None = None,
-    images_are_rgb: bool = False,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, Any]:
     """
     Load images, scribbles, and ground truth masks from a dataset folder.
     
     Args:
-        images_are_rgb: Whether images are in RGB format or Grayscale format.
+        rgb_images_dir: folder name for rgb images.
         folder_path (str): Path to the dataset folder (e.g., 'dataset/training').
-        images_dir (str): folder name for images.
+        grayscale_images_dir (str): folder name for grayscale images.
         scribbles_dir (str): folder name for scribbles.
         ground_truth_dir (str): folder name for ground truth images.
         
@@ -63,18 +63,19 @@ def load_dataset(
         filenames (list[str]): List of filenames for storing predictions
         palette (_type_): _description_
     """
-    if images_are_rgb:
-        images = _load_images(folder_path, images_dir, "rgb")
-    else:
-        images = _load_images(folder_path, images_dir, "grayscale")
+    rgb_images = _load_images(folder_path, rgb_images_dir, "rgb")
     scribbles = _load_images(folder_path, scribbles_dir, "grayscale")
     filenames = _get_filenames(folder_path, scribbles_dir)
     if ground_truth_dir is None:
-        return images, scribbles, filenames
-    
+        return rgb_images, scribbles, filenames
+
     ground_truth = _load_images(folder_path, ground_truth_dir, None)
     palette = _get_palette(folder_path, ground_truth_dir, filenames[0])
-    return images, scribbles, ground_truth, filenames, palette
+    if grayscale_images_dir:
+        grayscale_images = _load_images(folder_path, grayscale_images_dir, "grayscale")
+        return rgb_images, grayscale_images, scribbles, ground_truth, filenames, palette
+
+    return rgb_images, scribbles, ground_truth, filenames, palette
 
 def store_predictions(
     predictions: np.ndarray,

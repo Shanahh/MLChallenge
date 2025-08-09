@@ -94,6 +94,44 @@ class SegmentationDataset(Dataset):
 
         return input_tensor, mask
 
+class SegmentationDatasetExt(Dataset):
+    def __init__(self, rgb_images, grayscale_images, scribbles, masks, transform=None):
+        """
+        Parameters:
+            rgb_images (np.ndarray): (N, H, W, 3) rgb images
+            grayscale_images (np.ndarray): (N, H, W) grayscale images
+            scribbles (np.ndarray): (N, H, W) scribble masks
+            masks (np.ndarray): (N, H, W) ground truth masks
+        """
+        self.rgb_images = rgb_images
+        self.grayscale_images = grayscale_images
+        self.scribbles = scribbles
+        self.masks = masks
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.rgb_images)
+
+    def __getitem__(self, idx):
+        rgb_image = self.rgb_images[idx]                # shape: H x W x 3 (rgb)
+        grayscale_image = self.grayscale_images[idx]    # shape: H x W (grayscale)
+        scribble = self.scribbles[idx]                  # shape: H x W
+        mask = self.masks[idx]                          # shape: H x W
+
+        # Convert to tensors and normalize
+        rgb_image = torch.from_numpy(rgb_image).permute(2, 0, 1).float() / 255.0                # shape: 3 x H x W
+        grayscale_image_image = torch.from_numpy(grayscale_image).unsqueeze(0).float() / 255.0  # shape: 1 x H x W
+        scribble = torch.from_numpy(scribble).unsqueeze(0).float() / 255.0                      # shape: 1 x H x W
+        mask = torch.from_numpy(mask).unsqueeze(0).float()                                      # shape: 1 x H x W
+
+        # Combine image and scribble into 2-channel input tensor
+        input_tensor = torch.cat([rgb_image, grayscale_image, scribble], dim=0)  # shape: 5 x H x W
+
+        if self.transform:
+            input_tensor, mask = self.transform(input_tensor, mask)
+
+        return input_tensor, mask
+
 def _pad_to_512(img: np.ndarray, pad_value: int = 0) -> np.ndarray:
     """
         Pads an image or mask to 512x512 with the given pad_value.
