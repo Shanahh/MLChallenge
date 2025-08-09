@@ -127,7 +127,7 @@ class SegmentationDatasetExt(Dataset):
 
         # Convert to tensors and normalize
         rgb_image = torch.from_numpy(rgb_image).permute(2, 0, 1).float() / 255.0                # shape: 3 x H x W
-        grayscale_image_image = torch.from_numpy(grayscale_image).unsqueeze(0).float() / 255.0  # shape: 1 x H x W
+        grayscale_image = torch.from_numpy(grayscale_image).unsqueeze(0).float() / 255.0  # shape: 1 x H x W
         scribble = torch.from_numpy(scribble).unsqueeze(0).float() / 255.0                      # shape: 1 x H x W
         mask = torch.from_numpy(mask).unsqueeze(0).float()                                      # shape: 1 x H x W
 
