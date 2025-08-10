@@ -3,8 +3,8 @@ from copy import deepcopy
 import torch
 from torch.utils.data import DataLoader
 
-from src.baseline.util import load_dataset, load_dataset_grayscale_only
-from src.cnn.data import train_test_split_dataset, SegmentationDataset, augment_and_save_data, pad_and_save_data, \
+from src.baseline.util import load_dataset_rgb_gray, load_dataset_grayscale_only
+from src.cnn.data import train_test_split_dataset, augment_and_save_data, pad_and_save_data, \
     pad_and_return_data, SegmentationDatasetExt
 from src.cnn.losses import WeightedBCEDiceLoss
 from src.cnn.lr_finder import LRFinder
@@ -22,12 +22,12 @@ MAKE_PREDICTIONS_ON_TEST = False
 # constants
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 TARGET_PATH_PRED_VAL = "../../dataset/augmentations/validation/predictions"
-TARGET_PATH_PRED_TEST = "../../dataset/test_knn/predictions"
+TARGET_PATH_PRED_TEST = "../../dataset/test_knn_k_3/predictions"
 SOURCE_PATH_TRAIN_RGB = "../../dataset/training"
 SOURCE_PATH_TRAIN_MASKS = "../../dataset/training_knn_k_53"
 SOURCE_PATH_AUG_TRAIN = "../../dataset/augmentations/train"
 SOURCE_PATH_AUG_VAL = "../../dataset/augmentations/validation"
-SOURCE_PATH_TEST = "../../dataset/test_knn"
+SOURCE_PATH_TEST = "../../dataset/test_knn_k_3"
 
 HYPERPARAMS = {
     "regularization": {
@@ -37,9 +37,9 @@ HYPERPARAMS = {
     "training": {
         "learning_rate": 2.5e-2,
         "validation_set_size": 0.12, # only relevant if CREATE_NEW_AUGMENTATIONS is true
-        "num_epochs": 50,
+        "num_epochs": 70,
         "batch_size": 8,
-        "loss_pos_weight": 1.5, # the higher, the more the model will be penalized for predicting too much background
+        "loss_pos_weight": 2.0, # the higher, the more the model will be penalized for predicting too much background
         "loss_iou_weight": 1.0,
         "apply_sigmoid_in_model": False # leave False unless loss function without sigmoid application
     },
@@ -54,7 +54,7 @@ HYPERPARAMS = {
 if CREATE_NEW_AUGMENTATIONS:
     print("Creating new augmentations...")
     # load original training data
-    rgb_images, scrib, gt, fnames, palette = load_dataset(
+    rgb_images, scrib, gt, fnames, palette = load_dataset_rgb_gray(
         SOURCE_PATH_TRAIN_RGB, "images", "scribbles", ground_truth_dir="ground_truth"
     )
     gray_images, *_ = load_dataset_grayscale_only(
@@ -68,24 +68,22 @@ if CREATE_NEW_AUGMENTATIONS:
     pad_and_save_data(val_images_rgb, val_images_gray, val_scribbles, val_gt, palette, SOURCE_PATH_AUG_VAL)
 
 # load augmented training data
-train_images_aug_rgb, train_images_aug_gray, train_scrib_aug, train_gt_aug, train_fnames, palette2 = load_dataset(
+train_images_aug_rgb, train_images_aug_gray, train_scrib_aug, train_gt_aug, train_fnames, palette2 = load_dataset_rgb_gray(
     SOURCE_PATH_AUG_TRAIN, "images", "scribbles", "masks", "ground_truth"
 )
 
 # load validation data
-val_images_rgb, val_images_gray, val_scrib, val_gt, val_fnames, *_ = load_dataset(
+val_images_rgb, val_images_gray, val_scrib, val_gt, val_fnames, *_ = load_dataset_rgb_gray(
     SOURCE_PATH_AUG_VAL, "images", "scribbles", "masks", "ground_truth"
 )
 
 # load test data and pad it
-# TODO adapt this to quadruplet version!
-"""
-test_images, test_scrib, test_fnames = load_dataset(
-    SOURCE_PATH_TEST, "images", "scribbles"
+test_images_rgb, test_images_gray, test_scrib, test_fnames = load_dataset_rgb_gray(
+    SOURCE_PATH_TEST, "images", "scribbles", "masks", "ground_truth"
 )
-dummy_test_gt = deepcopy(test_images)
-test_images_pad, test_scrib_pad, dummy_test_gt_pad = pad_and_return_data(test_images, test_scrib, dummy_test_gt)
-"""
+dummy_test_gt = deepcopy(test_images_gray)
+test_img_rgb_pad, test_img_gray_pad, test_scrib_pad, dummy_test_gt_pad = pad_and_return_data(test_images_rgb, test_images_gray, test_scrib, dummy_test_gt)
+
 ######## create instances
 
 # model
@@ -97,7 +95,7 @@ model = UNet4(
 # data loaders
 train_dataset = SegmentationDatasetExt(train_images_aug_rgb, train_images_aug_gray, train_scrib_aug, train_gt_aug)
 val_dataset = SegmentationDatasetExt(val_images_rgb, val_images_gray, val_scrib, val_gt)
-#test_dataset = SegmentationDataset(test_images_pad, test_scrib_pad, dummy_test_gt_pad) # dummy s.t. data loader works in prediction
+test_dataset = SegmentationDatasetExt(test_img_rgb_pad, test_img_gray_pad, test_scrib_pad, dummy_test_gt_pad) # dummy s.t. data loader works in prediction
 
 train_loader = DataLoader(
     train_dataset,
@@ -110,13 +108,13 @@ val_loader = DataLoader(
     batch_size=HYPERPARAMS["training"]["batch_size"],
     shuffle=False
 )
-"""
+
 test_loader = DataLoader(
     test_dataset,
     batch_size=HYPERPARAMS["training"]["batch_size"],
     shuffle=False
 )
-"""
+
 # loss and optimizing
 criterion = WeightedBCEDiceLoss(
     pos_weight=HYPERPARAMS["training"]["loss_pos_weight"],
@@ -176,11 +174,11 @@ if MAKE_PREDICTIONS_ON_VAL:
         TARGET_PATH_PRED_VAL, val_loader, val_fnames, palette2,
         remove_padding=False
     )
-"""
+
 if MAKE_PREDICTIONS_ON_TEST:
     print("Making predictions on test set...")
     predict_and_save(
         model, DEVICE, best_model_path,
         TARGET_PATH_PRED_TEST, test_loader, test_fnames, palette2,
         remove_padding=True
-    )"""
+    )

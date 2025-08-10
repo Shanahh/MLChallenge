@@ -38,7 +38,7 @@ def _get_filenames(folder_path, scribbles_dir):
     filenames = _get_file_names(sc_dir_path)
     return filenames
 
-def load_dataset(
+def load_dataset_rgb_gray(
     folder_path: str,
     rgb_images_dir: str,
     scribbles_dir: str,
@@ -55,7 +55,6 @@ def load_dataset(
         scribbles_dir (str): folder name for scribbles.
         ground_truth_dir (str): folder name for ground truth images.
         
-        
     Returns:
         images (np.ndarray): Array of shape (N, H, W, 3) with RGB images.
         scribbles (np.ndarray): Array of shape (N, H, W) with scribble labels.
@@ -63,18 +62,28 @@ def load_dataset(
         filenames (list[str]): List of filenames for storing predictions
         palette (_type_): _description_
     """
+    # Load RGB and scribbles
     rgb_images = _load_images(folder_path, rgb_images_dir, "rgb")
     scribbles = _load_images(folder_path, scribbles_dir, "grayscale")
     filenames = _get_filenames(folder_path, scribbles_dir)
-    if ground_truth_dir is None:
-        return rgb_images, scribbles, filenames
 
-    ground_truth = _load_images(folder_path, ground_truth_dir, None)
-    palette = _get_palette(folder_path, ground_truth_dir, filenames[0])
+    # Optionally load grayscale
+    grayscale_images = None
     if grayscale_images_dir:
         grayscale_images = _load_images(folder_path, grayscale_images_dir, "grayscale")
-        return rgb_images, grayscale_images, scribbles, ground_truth, filenames, palette
 
+    # If no ground truth, return accordingly
+    if ground_truth_dir is None:
+        if grayscale_images is not None:
+            return rgb_images, grayscale_images, scribbles, filenames
+        return rgb_images, scribbles, filenames
+
+    # If ground truth present
+    ground_truth = _load_images(folder_path, ground_truth_dir, None)
+    palette = _get_palette(folder_path, ground_truth_dir, filenames[0])
+
+    if grayscale_images is not None:
+        return rgb_images, grayscale_images, scribbles, ground_truth, filenames, palette
     return rgb_images, scribbles, ground_truth, filenames, palette
 
 

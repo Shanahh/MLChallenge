@@ -195,3 +195,32 @@ mean IoU 77
 
 Not a big difference but seems like less variance across validation sets (?)
 
+loss_plot_2025-08-09_15-46-13.pdf
+Unet4,
+HYPERPARAMS = {
+    "regularization": {
+        "weight_decay": 1e-6, # 1e-6
+        "dropout_rate_model": 0.05
+    },
+    "training": {
+        "learning_rate": 2.5e-2,
+        "validation_set_size": 0.12, # only relevant if CREATE_NEW_AUGMENTATIONS is true
+        "num_epochs": 50,
+        "batch_size": 8,
+        "loss_pos_weight": 2, # the higher, the more the model will be penalized for predicting too much background
+        "loss_iou_weight": 1.0,
+        "apply_sigmoid_in_model": False # leave false unless loss function without sigmoid application
+    },
+    "scheduler": {
+        "one_cycle_scheduler": False,
+        "max_lr": 6e-3, # only relevant if one_cycle_scheduler is True
+        "scheduler_factor": 0.3, # only relevant if one_cycle_scheduler is False
+        "scheduler_patience": 5, # only relevant if one_cycle_scheduler is False
+    }
+}
+WeightedBCEDiceLoss,
+Ensemble diesmal Bild + KNN Mask + Scribble für CNN als input
+mIoU 78.5, nicht viel gewonnen
+
+
+

@@ -216,7 +216,7 @@ def predict_and_save(model, device, model_path, save_dir_path, data_loader, fnam
     with torch.no_grad():
         prediction_list = []
         for inputs, _ in data_loader:
-            inputs = inputs.to(device)  # shape: [B, 1, H, W]
+            inputs = inputs.to(device)  # shape: [B, 5, H, W]
             outputs = model(inputs)  # shape: [B, 1, H, W]
             predictions = model_output_to_mask(outputs)  # shape: [B, H, W]
             if remove_padding:
@@ -235,32 +235,3 @@ def predict_and_save(model, device, model_path, save_dir_path, data_loader, fnam
         )
 
     print("Predictions saved")
-
-"""
-def predict_and_save_from_images_scribbles(model, device, model_path, save_dir_path, images, scribbles, fnames, palette, remove_padding):
-    \"""
-    Makes predictions for the data given as an array of images and stores them in a folder in the given path.
-    @param images: ndarray of size (N, H, W)
-    \"""
-    os.makedirs(save_dir_path, exist_ok=True)
-    model.load_state_dict(torch.load(model_path, map_location=device))
-    model.to(device)
-    model.eval()
-
-    print(f"Model loaded from {model_path}, running and saving prediction on {images.shape[0]} samples...")
-
-    with torch.no_grad():
-        input_images = torch.from_numpy(images).float()  # shape: [N, H, W]
-        input_images = input_images.unsqueeze(1)  # shape: [N, 1, H, W]
-        input_images = input_images.to(device)
-        outputs = model(inputs)  # shape: [N, 1, H, W]
-        predictions = model_output_to_mask(outputs) # shape: [N, H, W]
-        save_dir_path_hd, save_dir = os.path.split(save_dir_path)
-        if remove_padding:
-            predictions = remove_padding_gt(predictions)
-        store_predictions(
-            predictions, save_dir_path_hd, save_dir, fnames, palette
-        )
-
-    print("Predictions saved")
-"""
