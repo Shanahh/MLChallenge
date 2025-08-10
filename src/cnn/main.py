@@ -14,20 +14,20 @@ from src.cnn.trainer import train_model, predict_and_save
 # steering cockpit
 CREATE_NEW_AUGMENTATIONS = False
 FIND_LR = False
-DO_TRAIN = True
+DO_TRAIN = False
 SAVE_STATISTICS_AND_MODEL = True
 MAKE_PREDICTIONS_ON_VAL = False
-MAKE_PREDICTIONS_ON_TEST = False
+MAKE_PREDICTIONS_ON_TEST = True
 
 # constants
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 TARGET_PATH_PRED_VAL = "../../dataset/augmentations/validation/predictions"
-TARGET_PATH_PRED_TEST = "../../dataset/test_knn_k_3/predictions"
+TARGET_PATH_PRED_TEST = "../../dataset/test_knn_k_53/predictions"
 SOURCE_PATH_TRAIN_RGB = "../../dataset/training"
 SOURCE_PATH_TRAIN_MASKS = "../../dataset/training_knn_k_53"
 SOURCE_PATH_AUG_TRAIN = "../../dataset/augmentations/train"
 SOURCE_PATH_AUG_VAL = "../../dataset/augmentations/validation"
-SOURCE_PATH_TEST = "../../dataset/test_knn_k_3"
+SOURCE_PATH_TEST = "../../dataset/test_knn_k_53"
 
 HYPERPARAMS = {
     "regularization": {
@@ -45,7 +45,7 @@ HYPERPARAMS = {
     },
     "scheduler": {
         "one_cycle_scheduler": False,
-        "max_lr": 6e-3, # only relevant if one_cycle_scheduler is True
+        "max_lr": 2.5e-2, # only relevant if one_cycle_scheduler is True
         "scheduler_factor": 0.3, # only relevant if one_cycle_scheduler is False
         "scheduler_patience": 5, # only relevant if one_cycle_scheduler is False
     }
@@ -79,7 +79,7 @@ val_images_rgb, val_images_gray, val_scrib, val_gt, val_fnames, *_ = load_datase
 
 # load test data and pad it
 test_images_rgb, test_images_gray, test_scrib, test_fnames = load_dataset_rgb_gray(
-    SOURCE_PATH_TEST, "images", "scribbles", "masks", "ground_truth"
+    SOURCE_PATH_TEST, "images", "scribbles", "masks"
 )
 dummy_test_gt = deepcopy(test_images_gray)
 test_img_rgb_pad, test_img_gray_pad, test_scrib_pad, dummy_test_gt_pad = pad_and_return_data(test_images_rgb, test_images_gray, test_scrib, dummy_test_gt)
@@ -156,7 +156,7 @@ if FIND_LR:
     print("LR finder done. Inspect plot and set lr / max_lr accordingly before training.")
 
 # train model
-best_model_path = "../../models\model_2025-07-30_01-49-01.pth" # 78 avg. mIoU on validation set
+best_model_path = "../../models\model_2025-08-09_15-46-13.pth" # 78 avg. mIoU on validation set
 if DO_TRAIN:
     best_model_path = train_model(
         model, DEVICE, train_loader, val_loader,

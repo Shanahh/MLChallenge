@@ -219,7 +219,7 @@ HYPERPARAMS = {
     }
 }
 WeightedBCEDiceLoss,
-Ensemble diesmal Bild + KNN Mask + Scribble für CNN als input
+Ensemble diesmal Bild + KNN Mask + Scribble für CNN als input, KNN 53 set
 mIoU 78.5, nicht viel gewonnen
 
 

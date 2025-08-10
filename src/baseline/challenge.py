@@ -8,18 +8,18 @@ from util import visualize
 
 ######### Just for testing purposes
 
-test_mode = True
-predict_on_train = True
-predict_on_test = False
+test_mode = False
+predict_on_train = False
+predict_on_test = True
 k_val = 53
-image_number = "2008_005541"
+image_number = "2010_000685"
 print("Test mode active: " + str(test_mode))
 
 ######### Training dataset
 
 # Load training dataset
 images_train, scrib_train, gt_train, fnames_train, palette = load_dataset_rgb_gray(
-    "../../dataset/training", "images", "scribbles", "ground_truth", images_are_rgb=True
+    "../../dataset/training", "images", "scribbles", ground_truth_dir="ground_truth"
 )
 
 if predict_on_train:
@@ -73,7 +73,7 @@ if predict_on_train:
 if predict_on_test:
     # Load test dataset
     images_test, scrib_test, fnames_test = load_dataset_rgb_gray(
-        "../../dataset/test", "images", "scribbles", images_are_rgb=True
+        "../../dataset/test", "images", "scribbles"
     )
 
     # Inference
@@ -111,7 +111,7 @@ if predict_on_test:
 
     # Storing segmented images for test dataset.
     store_predictions(
-        pred_test, "../../dataset/experiments", "images", fnames_test, palette
+        pred_test, "../../dataset/test_knn_k_53", "masks", fnames_test, palette
     )
 
 

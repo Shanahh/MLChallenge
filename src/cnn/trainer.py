@@ -28,7 +28,7 @@ def train_model(model, device, train_loader, val_loader, criterion, optimizer, s
     scheduler_is_one_cycle = isinstance(scheduler, torch.optim.lr_scheduler.OneCycleLR)
 
     # metrics
-    best_val_loss = float('inf')
+    best_mean_iou = float('inf')
     best_model = model
     train_losses = []
     val_losses = []
@@ -57,9 +57,9 @@ def train_model(model, device, train_loader, val_loader, criterion, optimizer, s
         print(f"Train Loss: {epoch_train_loss:.4f} | Val Loss: {epoch_val_loss:.4f} | "
               f"Obj IoU: {epoch_val_obj_iou:.4f} | Bkg IoU: {epoch_val_bkg_iou:.4f} | Mean IoU: {epoch_val_mean_iou:.4f}")
 
-        # save model if it achieves the current best results on the validation set in terms of validation loss
-        if epoch_val_loss < best_val_loss:
-            best_val_loss = epoch_val_loss
+        # save model if it achieves the current best results on the validation set in terms of mean IoU
+        if epoch_val_mean_iou < best_mean_iou:
+            best_mean_iou = epoch_val_mean_iou
             best_model = copy.deepcopy(model)
 
         # optimize learning rate if we have a scheduler which is not a one cycle scheduler
