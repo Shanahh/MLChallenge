@@ -58,7 +58,7 @@ def train_model(model, device, train_loader, val_loader, criterion, optimizer, s
               f"Obj IoU: {epoch_val_obj_iou:.4f} | Bkg IoU: {epoch_val_bkg_iou:.4f} | Mean IoU: {epoch_val_mean_iou:.4f}")
 
         # save model if it achieves the current best results on the validation set in terms of mean IoU
-        if epoch_val_mean_iou < best_epoch_val_mean_iou:
+        if epoch_val_mean_iou > best_epoch_val_mean_iou:
             best_epoch_val_mean_iou = epoch_val_mean_iou
             best_model = copy.deepcopy(model)
 
