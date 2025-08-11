@@ -79,4 +79,10 @@ Collection of Hyperparameters:
 Third attempt:
 
 Take CNN from second attempt but use KNN results for training -> begin experimenting with pseudo labels and ensemble models
+Large IoU jump compared to attempt 2
+
+Fourth attempt:
+
+Instead of only passing the KNN segmentation mask and scribbles to the CNN as in the 3rd attempt, the entire picture is passed too
+No increment in IoU but possibility to extract more data from images
 

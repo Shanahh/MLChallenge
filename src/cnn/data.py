@@ -195,7 +195,86 @@ def remove_padding_gt(padded_images: np.ndarray) -> np.ndarray:
     gts_no_padding_array = np.stack(gts_no_padding, axis=0)
     return gts_no_padding_array
 
-def _augment_quadruplet(
+def _augment_quadruplet_v2(
+    rgb_image: np.ndarray,
+    grayscale_image: np.ndarray,
+    scribble: np.ndarray,
+    ground_truth: np.ndarray,
+) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]:
+
+    def _pad_all(rgb, gray, scrib, gt):
+        return (
+            _pad_to_512(rgb),
+            _pad_to_512(gray),
+            _pad_to_512(scrib, pad_value=255),
+            _pad_to_512(gt),
+        )
+
+    results = [_pad_all(rgb_image, grayscale_image, scribble, ground_truth)]
+
+    def make_geometric_transform():
+        return A.Compose([
+            A.RandomResizedCrop(
+                size=(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH),
+                scale=(0.8, 1.0),
+                ratio=(0.9, 1.1),
+                p=0.4
+            ),
+            A.OneOf([
+                A.GridDistortion(
+                    num_steps=5,  # int
+                    distort_limit=(-0.3, 0.3),  # ScaleFloatType
+                    interpolation=1,  # <class 'int'>
+                    normalized=True,  # bool
+                    mask_interpolation=0,  # int
+                    border_mode=cv2.BORDER_REPLICATE,
+                    p=1.0,  # float
+                ),
+                A.Perspective(scale=(0.05, 0.1), p=1.0),
+            ], p=0.8),
+            A.Rotate(
+                limit=(-15, 15),
+                border_mode=cv2.BORDER_REPLICATE,
+                p=0.4
+            ),
+            A.OneOf([
+                A.HorizontalFlip(p=1.0),
+                A.VerticalFlip(p=1.0),
+            ], p=0.7),
+        ])
+
+    def make_color_transform():
+        return A.Compose([
+            A.OneOf([
+                A.GaussianBlur(blur_limit=(3, 5), p=1.0),
+                A.MotionBlur(blur_limit=5, p=1.0),
+                A.MedianBlur(blur_limit=3, p=1.0),
+            ], p=0.3),
+            A.OneOf([
+                A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=1.0),
+                A.CLAHE(clip_limit=2.0, p=1.0),
+            ], p=0.3),
+            A.GaussNoise(std_range=(0.1, 0.3), p=0.2),
+        ])
+
+    for _ in range(3):
+        geo_transform = make_geometric_transform()
+        color_transform = make_color_transform()
+
+        geo_aug = geo_transform(image=rgb_image, masks=[grayscale_image, scribble, ground_truth])
+        # Apply color transforms only to the geo-augmented RGB
+        color_aug = color_transform(image=geo_aug['image'])
+
+        results.append(_pad_all(
+            color_aug['image'],
+            geo_aug['masks'][0],
+            geo_aug['masks'][1],
+            geo_aug['masks'][2],
+        ))
+
+    return results
+
+def _augment_quadruplet_v1(
     rgb_image: np.ndarray,
     grayscale_image: np.ndarray,
     scribble: np.ndarray,
@@ -382,5 +461,5 @@ def augment_and_save_data(rgb_images, grayscale_images, scribbles, ground_truths
 
     next_id = 0 # image ID for saving
     for (rgb_img, grayscale_img, scrib, gt) in zip(rgb_images, grayscale_images, scribbles, ground_truths):
-        augmented_quadruplets = _augment_quadruplet(rgb_img, grayscale_img, scrib, gt)
+        augmented_quadruplets = _augment_quadruplet_v1(rgb_img, grayscale_img, scrib, gt)
         next_id = _save_quadruplets(augmented_quadruplets, rgb_img_path, grayscale_image_path, scrib_path, gt_path, palette, next_id)

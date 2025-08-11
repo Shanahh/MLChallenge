@@ -12,12 +12,12 @@ from src.cnn.models import UNet4
 from src.cnn.trainer import train_model, predict_and_save
 
 # steering cockpit
-CREATE_NEW_AUGMENTATIONS = False
+CREATE_NEW_AUGMENTATIONS = True
 FIND_LR = False
-DO_TRAIN = False
+DO_TRAIN = True
 SAVE_STATISTICS_AND_MODEL = True
 MAKE_PREDICTIONS_ON_VAL = False
-MAKE_PREDICTIONS_ON_TEST = True
+MAKE_PREDICTIONS_ON_TEST = False
 
 # constants
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -37,7 +37,7 @@ HYPERPARAMS = {
     "training": {
         "learning_rate": 2.5e-2,
         "validation_set_size": 0.12, # only relevant if CREATE_NEW_AUGMENTATIONS is true
-        "num_epochs": 70,
+        "num_epochs": 50,
         "batch_size": 8,
         "loss_pos_weight": 2.0, # the higher, the more the model will be penalized for predicting too much background
         "loss_iou_weight": 1.0,
