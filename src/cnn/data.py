@@ -150,7 +150,7 @@ def remove_padding_gt(padded_images: np.ndarray) -> np.ndarray:
     gts_no_padding_array = np.stack(gts_no_padding, axis=0)
     return gts_no_padding_array
 
-def _augment_triplet(
+def _augment_triplet_v1(
     image: np.ndarray,
     scribble: np.ndarray,
     ground_truth: np.ndarray,
@@ -230,6 +230,118 @@ def _augment_triplet(
 
     return augmented_triplets
 
+def _augment_triplet_v2(
+    grayscale_image: np.ndarray,
+    scribble: np.ndarray,
+    ground_truth: np.ndarray,
+) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+
+    def _pad_all(gray, scrib, gt):
+        return (
+            _pad_to_512(gray),
+            _pad_to_512(scrib, pad_value=255),
+            _pad_to_512(gt),
+        )
+
+    results = [_pad_all(grayscale_image, scribble, ground_truth)]  # original padded
+
+    def make_geometric_transform():
+        return A.Compose([
+            A.RandomResizedCrop(
+                size=(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH),
+                scale=(0.8, 1.0),
+                ratio=(0.9, 1.1),
+                p=0.4
+            ),
+            A.OneOf([
+                A.GridDistortion(
+                    num_steps=5,
+                    distort_limit=(-0.3, 0.3),
+                    interpolation=1,
+                    normalized=True,
+                    border_mode=cv2.BORDER_REPLICATE,
+                    p=1.0,
+                ),
+                A.Perspective(scale=(0.05, 0.1), p=1.0),
+            ], p=0.8),
+            A.Rotate(
+                limit=(-15, 15),
+                border_mode=cv2.BORDER_REPLICATE,
+                p=0.4
+            ),
+            A.OneOf([
+                A.HorizontalFlip(p=1.0),
+                A.VerticalFlip(p=1.0),
+            ], p=0.7),
+        ])
+
+    for _ in range(3):
+        geo_transform = make_geometric_transform()
+        geo_aug = geo_transform(image=grayscale_image, masks=[scribble, ground_truth])
+
+        results.append(_pad_all(
+            geo_aug['image'],
+            geo_aug['masks'][0],
+            geo_aug['masks'][1],
+        ))
+
+    return results
+
+def _augment_triplet_v3(
+    grayscale_image: np.ndarray,
+    scribble: np.ndarray,
+    ground_truth: np.ndarray,
+) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+
+    def _pad_all(gray, scrib, gt):
+        return (
+            _pad_to_512(gray),
+            _pad_to_512(scrib, pad_value=255),
+            _pad_to_512(gt),
+        )
+
+    results = [_pad_all(grayscale_image, scribble, ground_truth)]  # original padded
+
+    def make_geometric_transform():
+        return A.Compose([
+            A.RandomResizedCrop(
+                size=(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH),
+                scale=(0.8, 1.0),
+                ratio=(0.9, 1.1),
+                p=0.5
+            ),
+            A.GridDistortion(
+                num_steps=5,
+                distort_limit=(-0.3, 0.3),
+                interpolation=1,
+                normalized=True,
+                border_mode=cv2.BORDER_REPLICATE,
+                p=0.5,
+            ),
+            A.Perspective(scale=(0.05, 0.1), p=0.5),
+            A.Rotate(
+                limit=(-15, 15),
+                border_mode=cv2.BORDER_REPLICATE,
+                p=0.5
+            ),
+            A.OneOf([
+                A.HorizontalFlip(p=1.0),
+                A.VerticalFlip(p=1.0),
+            ], p=0.5),
+        ])
+
+    for _ in range(5):
+        geo_transform = make_geometric_transform()
+        geo_aug = geo_transform(image=grayscale_image, masks=[scribble, ground_truth])
+
+        results.append(_pad_all(
+            geo_aug['image'],
+            geo_aug['masks'][0],
+            geo_aug['masks'][1],
+        ))
+
+    return results
+
 def _save_triplets(triplets: List[Tuple[np.ndarray, np.ndarray, np.ndarray]],
                   img_path: str, scrib_path: str, gt_path: str, palette: List[int], start_idx: int = 0) -> int:
     """
@@ -302,5 +414,5 @@ def augment_and_save_data(images, scribbles, ground_truths, palette, save_path):
 
     next_id = 0 # image ID for saving
     for (img, scrib, gt) in zip(images, scribbles, ground_truths):
-        augmented_triplets = _augment_triplet(img, scrib, gt)
+        augmented_triplets = _augment_triplet_v2(img, scrib, gt)
         next_id = _save_triplets(augmented_triplets, img_path, scrib_path, gt_path, palette, next_id)

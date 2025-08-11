@@ -26,7 +26,7 @@ TARGET_PATH_PRED_TEST = "../../dataset/test_knn/predictions"
 SOURCE_PATH_TRAIN = "../../dataset/training_knn_k_53"
 SOURCE_PATH_AUG_TRAIN = "../../dataset/augmentations/train"
 SOURCE_PATH_AUG_VAL = "../../dataset/augmentations/validation"
-SOURCE_PATH_TEST = "../../dataset/test_knn"
+SOURCE_PATH_TEST = "../../dataset/test_knn_k_53"
 
 HYPERPARAMS = {
     "regularization": {
@@ -34,11 +34,11 @@ HYPERPARAMS = {
         "dropout_rate_model": 0.05
     },
     "training": {
-        "learning_rate": 2.5e-2,
-        "validation_set_size": 0.12, # only relevant if CREATE_NEW_AUGMENTATIONS is true
+        "learning_rate": 2e-2,
+        "validation_set_size": 0.10, # only relevant if CREATE_NEW_AUGMENTATIONS is true
         "num_epochs": 50,
         "batch_size": 8,
-        "loss_pos_weight": 1.5, # the higher, the more the model will be penalized for predicting too much background
+        "loss_pos_weight": 2.0, # the higher, the more the model will be penalized for predicting too much background
         "loss_iou_weight": 1.0,
         "apply_sigmoid_in_model": False # leave False unless loss function without sigmoid application
     },
