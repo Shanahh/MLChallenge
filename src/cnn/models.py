@@ -17,7 +17,7 @@ class UNet5(nn.Module):
     def __init__(self, dropout_rate, apply_sigmoid):
         super().__init__()
         # encoder blocks
-        self.enc1 = EncoderBlockGeneric(5, 16, dropout_rate)
+        self.enc1 = EncoderBlockGeneric(3, 16, dropout_rate)
         self.enc2 = EncoderBlockGeneric(16, 32, dropout_rate)
         self.enc3 = EncoderBlockGeneric(32, 64, dropout_rate)
         self.enc4 = EncoderBlockGeneric(64, 128, dropout_rate)
@@ -51,7 +51,7 @@ class UNet4(nn.Module):
     def __init__(self, dropout_rate, apply_sigmoid):
         super().__init__()
         # encoder blocks
-        self.enc1 = EncoderBlockGeneric(5, 16, dropout_rate)
+        self.enc1 = EncoderBlockGeneric(3, 16, dropout_rate)
         self.enc2 = EncoderBlockGeneric(16, 32, dropout_rate)
         self.enc3 = EncoderBlockGeneric(32, 64, dropout_rate)
         self.enc4 = EncoderBlockBottleneck(64, 128, dropout_rate)
@@ -81,7 +81,7 @@ class UNet3(nn.Module):
     def __init__(self, dropout_rate, apply_sigmoid):
         super().__init__()
         # encoder blocks
-        self.enc1 = EncoderBlockGeneric(5, 16, dropout_rate)
+        self.enc1 = EncoderBlockGeneric(3, 16, dropout_rate)
         self.enc2 = EncoderBlockGeneric(16, 32, dropout_rate)
         self.enc3 = EncoderBlockBottleneck(32, 64, dropout_rate)
         # decoder blocks
@@ -107,7 +107,7 @@ class UNet2(nn.Module):
     def __init__(self, dropout_rate, apply_sigmoid):
         super().__init__()
         # encoder blocks
-        self.enc1 = EncoderBlockGeneric(5, 16, dropout_rate)
+        self.enc1 = EncoderBlockGeneric(3, 16, dropout_rate)
         self.enc2 = EncoderBlockBottleneck(16, 32, dropout_rate)
         # decoder blocks
         self.dec2 = DecoderBlockBottleneck(32, 16, dropout_rate)

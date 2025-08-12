@@ -78,11 +78,11 @@ val_images_gc, val_images_knn, val_scrib, val_gt, val_fnames, *_ = load_dataset_
 )
 
 # load test data and pad it
-test_images_rgb, test_images_gray, test_scrib, test_fnames = load_dataset_gray_twice(
+test_images_gc, test_images_knn, test_scrib, test_fnames = load_dataset_gray_twice(
     SOURCE_PATH_TEST, "images", "scribbles", "masks"
 )
-dummy_test_gt = deepcopy(test_images_gray)
-test_img_rgb_pad, test_img_gray_pad, test_scrib_pad, dummy_test_gt_pad = pad_and_return_data(test_images_rgb, test_images_gray, test_scrib, dummy_test_gt)
+dummy_test_gt = deepcopy(test_images_knn)
+test_img_gc_pad, test_img_knn_pad, test_scrib_pad, dummy_test_gt_pad = pad_and_return_data(test_images_gc, test_images_knn, test_scrib, dummy_test_gt)
 
 ######## create instances
 
@@ -95,7 +95,7 @@ model = UNet4(
 # data loaders
 train_dataset = SegmentationDatasetExt(train_images_aug_gc, train_images_aug_knn, train_scrib_aug, train_gt_aug)
 val_dataset = SegmentationDatasetExt(val_images_gc, val_images_knn, val_scrib, val_gt)
-test_dataset = SegmentationDatasetExt(test_img_rgb_pad, test_img_gray_pad, test_scrib_pad, dummy_test_gt_pad) # dummy s.t. data loader works in prediction
+test_dataset = SegmentationDatasetExt(test_img_gc_pad, test_img_knn_pad, test_scrib_pad, dummy_test_gt_pad) # dummy s.t. data loader works in prediction
 
 train_loader = DataLoader(
     train_dataset,
