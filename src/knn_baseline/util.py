@@ -40,51 +40,51 @@ def _get_filenames(folder_path, scribbles_dir):
 
 def load_dataset_gray_twice(
     folder_path: str,
-    rgb_images_dir: str,
+    gc_images_dir: str,
     scribbles_dir: str,
-    grayscale_images_dir: str | None = None,
+    knn_images_dir: str | None = None,
     ground_truth_dir: str | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, Any]:
     """
     Load images, scribbles, and ground truth masks from a dataset folder.
     
     Args:
-        rgb_images_dir: folder name for rgb images.
+        gc_images_dir: folder name for gc images.
         folder_path (str): Path to the dataset folder (e.g., 'dataset/training').
-        grayscale_images_dir (str): folder name for grayscale images.
+        knn_images_dir (str): folder name for grayscale images.
         scribbles_dir (str): folder name for scribbles.
         ground_truth_dir (str): folder name for ground truth images.
         
     Returns:
-        images (np.ndarray): Array of shape (N, H, W, 3) with RGB images.
+        images (np.ndarray): Array of shape (N, H, W, 3) with gc images.
         scribbles (np.ndarray): Array of shape (N, H, W) with scribble labels.
         ground_truth (np.ndarray): Array of shape (N, H, W) with class labels.
         filenames (list[str]): List of filenames for storing predictions
         palette (_type_): _description_
     """
-    # Load RGB and scribbles
-    rgb_images = _load_images(folder_path, rgb_images_dir, "grayscale")
+    # Load gc and scribbles
+    gc_images = _load_images(folder_path, gc_images_dir, "grayscale")
     scribbles = _load_images(folder_path, scribbles_dir, "grayscale")
     filenames = _get_filenames(folder_path, scribbles_dir)
 
     # Optionally load grayscale
-    grayscale_images = None
-    if grayscale_images_dir:
-        grayscale_images = _load_images(folder_path, grayscale_images_dir, "grayscale")
+    knn_images = None
+    if knn_images_dir:
+        knn_images = _load_images(folder_path, knn_images_dir, "grayscale")
 
     # If no ground truth, return accordingly
     if ground_truth_dir is None:
-        if grayscale_images is not None:
-            return rgb_images, grayscale_images, scribbles, filenames
-        return rgb_images, scribbles, filenames
+        if knn_images is not None:
+            return gc_images, knn_images, scribbles, filenames
+        return gc_images, scribbles, filenames
 
     # If ground truth present
     ground_truth = _load_images(folder_path, ground_truth_dir, None)
     palette = _get_palette(folder_path, ground_truth_dir, filenames[0])
 
-    if grayscale_images is not None:
-        return rgb_images, grayscale_images, scribbles, ground_truth, filenames, palette
-    return rgb_images, scribbles, ground_truth, filenames, palette
+    if knn_images is not None:
+        return gc_images, knn_images, scribbles, ground_truth, filenames, palette
+    return gc_images, scribbles, ground_truth, filenames, palette
 
 
 def load_dataset_gray_once(

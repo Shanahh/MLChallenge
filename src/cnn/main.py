@@ -12,7 +12,7 @@ from src.cnn.models import UNet4
 from src.cnn.trainer import train_model, predict_and_save
 
 # steering cockpit
-CREATE_NEW_AUGMENTATIONS = True
+CREATE_NEW_AUGMENTATIONS = False
 FIND_LR = False
 DO_TRAIN = True
 SAVE_STATISTICS_AND_MODEL = True
@@ -35,7 +35,7 @@ HYPERPARAMS = {
         "dropout_rate_model": 0.05
     },
     "training": {
-        "learning_rate": 2.5e-2,
+        "learning_rate": 3e-2,
         "validation_set_size": 0.12, # only relevant if CREATE_NEW_AUGMENTATIONS is true
         "num_epochs": 50,
         "batch_size": 8,
@@ -69,12 +69,12 @@ if CREATE_NEW_AUGMENTATIONS:
 
 # load augmented training data
 train_images_aug_gc, train_images_aug_knn, train_scrib_aug, train_gt_aug, train_fnames, palette2 = load_dataset_gray_twice(
-    SOURCE_PATH_AUG_TRAIN, "images", "scribbles", "masks", "ground_truth"
+    SOURCE_PATH_AUG_TRAIN, "masks_gc", "scribbles", "masks_knn", "ground_truth"
 )
 
 # load validation data
 val_images_gc, val_images_knn, val_scrib, val_gt, val_fnames, *_ = load_dataset_gray_twice(
-    SOURCE_PATH_AUG_VAL, "images", "scribbles", "masks", "ground_truth"
+    SOURCE_PATH_AUG_VAL, "masks_gc", "scribbles", "masks_knn", "ground_truth"
 )
 
 # load test data and pad it
