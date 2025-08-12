@@ -86,3 +86,8 @@ Fourth attempt:
 Instead of only passing the KNN segmentation mask and scribbles to the CNN as in the 3rd attempt, the entire picture is passed too
 No increment in IoU but possibility to extract more data from images
 
+Fifth attemp:
+
+Basically fourth attempt but before passing the KNN mask to the CNN, refine it via grab_cut algorithm
+Seemed promising at first but some pictures are messed up kind of badly s.t. network cant get past miou of 77
+

@@ -24,7 +24,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 TARGET_PATH_PRED_VAL = "../../dataset/augmentations/validation/predictions"
 TARGET_PATH_PRED_TEST = "../../dataset/test_knn_k_53/predictions"
 SOURCE_PATH_TRAIN_RGB = "../../dataset/training"
-SOURCE_PATH_TRAIN_MASKS = "../../dataset/training_knn_k_53"
+SOURCE_PATH_TRAIN_MASKS = "../../dataset/training_knn_k_53_gc"
 SOURCE_PATH_AUG_TRAIN = "../../dataset/augmentations/train"
 SOURCE_PATH_AUG_VAL = "../../dataset/augmentations/validation"
 SOURCE_PATH_TEST = "../../dataset/test_knn_k_53"
@@ -47,7 +47,7 @@ HYPERPARAMS = {
         "one_cycle_scheduler": False,
         "max_lr": 2.5e-2, # only relevant if one_cycle_scheduler is True
         "scheduler_factor": 0.3, # only relevant if one_cycle_scheduler is False
-        "scheduler_patience": 5, # only relevant if one_cycle_scheduler is False
+        "scheduler_patience": 4, # only relevant if one_cycle_scheduler is False
     }
 }
 
