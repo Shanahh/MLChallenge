@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 
-def before_grabcut_img_preprocessing(knn_mask: np.ndarray, scribble_mask: np.ndarray) -> np.ndarray:
+def before_grabcut_mask_preprocessing(knn_mask: np.ndarray, scribble_mask: np.ndarray) -> np.ndarray:
     """
     Prepare GrabCut mask from KNN mask and scribble mask.
 
@@ -53,7 +53,7 @@ def grabcut_with_mask(image: np.ndarray, mask_gc: np.ndarray, iterations: int = 
     # Run GrabCut with mask
     cv2.grabCut(image, mask_gc, None, bgdModel, fgdModel, iterations, cv2.GC_INIT_WITH_MASK)
 
-    # Return binary mask: foreground=255, background=0
-    final_mask = np.where((mask_gc == cv2.GC_FGD) | (mask_gc == cv2.GC_PR_FGD), 255, 0).astype(np.uint8)
+    # Return binary mask: foreground=1, background=0
+    final_mask = np.where((mask_gc == cv2.GC_FGD) | (mask_gc == cv2.GC_PR_FGD), 1, 0).astype(np.uint8)
 
     return final_mask

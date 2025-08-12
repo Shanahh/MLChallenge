@@ -147,7 +147,7 @@ def store_predictions(
         pred_image.save(filepath)
 
 
-######### Methods for baseline model
+######### Methods for knn_baseline model
 
 def segment_with_knn(
     image: np.ndarray,

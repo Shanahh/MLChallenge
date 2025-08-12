@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 from src.cnn.data import remove_padding_gt
 from src.cnn.evaluation import *
-from src.baseline.util import store_predictions
+from src.knn_baseline.util import store_predictions
 
 # constants
 MODEL_DIR_PATH = "../../models"

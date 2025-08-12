@@ -6,8 +6,8 @@ from sklearn.multioutput import MultiOutputClassifier
 from sklearn.decomposition import PCA
 from scipy.ndimage import distance_transform_edt
 
-from src.baseline.util import load_dataset_rgb_gray
-from src.baseline.util import store_predictions
+from src.knn_baseline.util import load_dataset_rgb_gray
+from src.knn_baseline.util import store_predictions
 
 """
 approach:

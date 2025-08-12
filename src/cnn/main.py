@@ -3,7 +3,7 @@ from copy import deepcopy
 import torch
 from torch.utils.data import DataLoader
 
-from src.baseline.util import load_dataset_rgb_gray, load_dataset_grayscale_only
+from src.knn_baseline.util import load_dataset_rgb_gray, load_dataset_grayscale_only
 from src.cnn.data import train_test_split_dataset, augment_and_save_data, pad_and_save_data, \
     pad_and_return_data, SegmentationDatasetExt
 from src.cnn.losses import WeightedBCEDiceLoss
