@@ -3,7 +3,7 @@ from copy import deepcopy
 import torch
 from torch.utils.data import DataLoader
 
-from src.knn_baseline.util import load_dataset_rgb_gray, load_dataset_grayscale_only
+from src.knn_baseline.util import load_dataset_gray_twice, load_dataset_gray_once
 from src.cnn.data import train_test_split_dataset, augment_and_save_data, pad_and_save_data, \
     pad_and_return_data, SegmentationDatasetExt
 from src.cnn.losses import WeightedBCEDiceLoss
@@ -23,8 +23,8 @@ MAKE_PREDICTIONS_ON_TEST = False
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 TARGET_PATH_PRED_VAL = "../../dataset/augmentations/validation/predictions"
 TARGET_PATH_PRED_TEST = "../../dataset/test_knn_k_53/predictions"
-SOURCE_PATH_TRAIN_RGB = "../../dataset/training"
-SOURCE_PATH_TRAIN_MASKS = "../../dataset/training_knn_k_53_gc"
+SOURCE_PATH_TRAIN_MASKS_GC = "../../dataset/training_gc"
+SOURCE_PATH_TRAIN_MASKS_KNN = "../../dataset/training_knn_k_3"
 SOURCE_PATH_AUG_TRAIN = "../../dataset/augmentations/train"
 SOURCE_PATH_AUG_VAL = "../../dataset/augmentations/validation"
 SOURCE_PATH_TEST = "../../dataset/test_knn_k_53"
@@ -54,31 +54,31 @@ HYPERPARAMS = {
 if CREATE_NEW_AUGMENTATIONS:
     print("Creating new augmentations...")
     # load original training data
-    rgb_images, scrib, gt, fnames, palette = load_dataset_rgb_gray(
-        SOURCE_PATH_TRAIN_RGB, "images", "scribbles", ground_truth_dir="ground_truth"
+    masks_gc, scrib, gt, fnames, palette = load_dataset_gray_once(
+        SOURCE_PATH_TRAIN_MASKS_GC, "images", "scribbles", ground_truth_dir="ground_truth"
     )
-    gray_images, *_ = load_dataset_grayscale_only(
-        SOURCE_PATH_TRAIN_MASKS, "images", "scribbles", ground_truth_dir="ground_truth"
+    masks_knn, *_ = load_dataset_gray_once(
+        SOURCE_PATH_TRAIN_MASKS_KNN, "images", "scribbles", ground_truth_dir="ground_truth"
     )
     # split data
-    (train_images_rgb, train_images_gray, train_scribbles, train_gt), (val_images_rgb, val_images_gray, val_scribbles, val_gt) \
-        = train_test_split_dataset(rgb_images, gray_images, scrib, gt, validation_size=HYPERPARAMS["training"]["validation_set_size"])
+    (train_images_gc, train_images_knn, train_scribbles, train_gt), (val_images_gc, val_images_knn, val_scribbles, val_gt) \
+        = train_test_split_dataset(masks_gc, masks_knn, scrib, gt, validation_size=HYPERPARAMS["training"]["validation_set_size"])
     # augment
-    augment_and_save_data(train_images_rgb, train_images_gray, train_scribbles, train_gt, palette, SOURCE_PATH_AUG_TRAIN)
-    pad_and_save_data(val_images_rgb, val_images_gray, val_scribbles, val_gt, palette, SOURCE_PATH_AUG_VAL)
+    augment_and_save_data(train_images_gc, train_images_knn, train_scribbles, train_gt, palette, SOURCE_PATH_AUG_TRAIN)
+    pad_and_save_data(val_images_gc, val_images_knn, val_scribbles, val_gt, palette, SOURCE_PATH_AUG_VAL)
 
 # load augmented training data
-train_images_aug_rgb, train_images_aug_gray, train_scrib_aug, train_gt_aug, train_fnames, palette2 = load_dataset_rgb_gray(
+train_images_aug_gc, train_images_aug_knn, train_scrib_aug, train_gt_aug, train_fnames, palette2 = load_dataset_gray_twice(
     SOURCE_PATH_AUG_TRAIN, "images", "scribbles", "masks", "ground_truth"
 )
 
 # load validation data
-val_images_rgb, val_images_gray, val_scrib, val_gt, val_fnames, *_ = load_dataset_rgb_gray(
+val_images_gc, val_images_knn, val_scrib, val_gt, val_fnames, *_ = load_dataset_gray_twice(
     SOURCE_PATH_AUG_VAL, "images", "scribbles", "masks", "ground_truth"
 )
 
 # load test data and pad it
-test_images_rgb, test_images_gray, test_scrib, test_fnames = load_dataset_rgb_gray(
+test_images_rgb, test_images_gray, test_scrib, test_fnames = load_dataset_gray_twice(
     SOURCE_PATH_TEST, "images", "scribbles", "masks"
 )
 dummy_test_gt = deepcopy(test_images_gray)
@@ -93,8 +93,8 @@ model = UNet4(
 )
 
 # data loaders
-train_dataset = SegmentationDatasetExt(train_images_aug_rgb, train_images_aug_gray, train_scrib_aug, train_gt_aug)
-val_dataset = SegmentationDatasetExt(val_images_rgb, val_images_gray, val_scrib, val_gt)
+train_dataset = SegmentationDatasetExt(train_images_aug_gc, train_images_aug_knn, train_scrib_aug, train_gt_aug)
+val_dataset = SegmentationDatasetExt(val_images_gc, val_images_knn, val_scrib, val_gt)
 test_dataset = SegmentationDatasetExt(test_img_rgb_pad, test_img_gray_pad, test_scrib_pad, dummy_test_gt_pad) # dummy s.t. data loader works in prediction
 
 train_loader = DataLoader(

@@ -275,8 +275,8 @@ def _augment_quadruplet_v2(
     return results
 
 def _augment_quadruplet_v1(
-    rgb_image: np.ndarray,
-    grayscale_image: np.ndarray,
+    mask_gc: np.ndarray,
+    mask_knn: np.ndarray,
     scribble: np.ndarray,
     ground_truth: np.ndarray,
 ) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]:
@@ -289,7 +289,7 @@ def _augment_quadruplet_v1(
     each padded to 512×512.
     """
 
-    h, w = rgb_image.shape[:2]
+    h, w = mask_gc.shape[:2]
 
     # -------- Create transformers -----------
 
@@ -316,7 +316,7 @@ def _augment_quadruplet_v1(
     else:
         angle = random.uniform(5, 15)
 
-    transform_rotate_rgb_gray_gt = A.Compose([
+    transform_rotate_masks_gt = A.Compose([
         A.Rotate(limit=(angle, angle), border_mode=0, fill=0, p=1.0),
         A.Resize(IMG_ORIG_HEIGHT, IMG_ORIG_WIDTH),
     ])
@@ -328,36 +328,36 @@ def _augment_quadruplet_v1(
     # -------- Apply augmentations -----------
 
     # Original
-    orig_rgb = _pad_to_512(rgb_image)
-    orig_gray = _pad_to_512(grayscale_image)
+    orig_gc = _pad_to_512(mask_gc)
+    orig_knn = _pad_to_512(mask_knn)
     orig_scribble = _pad_to_512(scribble, pad_value=255)
     orig_gt = _pad_to_512(ground_truth)
 
     # Crop
-    crop = transform_crop(image=rgb_image, masks=[grayscale_image, scribble, ground_truth])
-    crop_rgb = _pad_to_512(crop['image'])
-    crop_gray = _pad_to_512(crop['masks'][0])
+    crop = transform_crop(image=mask_gc, masks=[mask_knn, scribble, ground_truth])
+    crop_gc = _pad_to_512(crop['image'])
+    crop_knn = _pad_to_512(crop['masks'][0])
     crop_scribble = _pad_to_512(crop['masks'][1], pad_value=255)
     crop_gt = _pad_to_512(crop['masks'][2])
 
     # Flip
-    flip = transform_flip(image=rgb_image, masks=[grayscale_image, scribble, ground_truth])
-    flip_rgb = _pad_to_512(flip['image'])
-    flip_gray = _pad_to_512(flip['masks'][0])
+    flip = transform_flip(image=mask_gc, masks=[mask_knn, scribble, ground_truth])
+    flip_gc = _pad_to_512(flip['image'])
+    flip_knn = _pad_to_512(flip['masks'][0])
     flip_scribble = _pad_to_512(flip['masks'][1], pad_value=255)
     flip_gt = _pad_to_512(flip['masks'][2])
 
     # Rotate
-    rotate_rgb = _pad_to_512(transform_rotate_rgb_gray_gt(image=rgb_image)['image'])
-    rotate_gray = _pad_to_512(transform_rotate_rgb_gray_gt(image=grayscale_image)['image'])
+    rotate_gc = _pad_to_512(transform_rotate_masks_gt(image=mask_gc)['image'])
+    rotate_knn = _pad_to_512(transform_rotate_masks_gt(image=mask_knn)['image'])
     rotate_scribble = _pad_to_512(transform_rotate_scrib(image=scribble)['image'], pad_value=255)
-    rotate_gt = _pad_to_512(transform_rotate_rgb_gray_gt(image=ground_truth)['image'])
+    rotate_gt = _pad_to_512(transform_rotate_masks_gt(image=ground_truth)['image'])
 
     augmented_quadruplets = [
-        (orig_rgb, orig_gray, orig_scribble, orig_gt),
-        (crop_rgb, crop_gray, crop_scribble, crop_gt),
-        (flip_rgb, flip_gray, flip_scribble, flip_gt),
-        (rotate_rgb, rotate_gray, rotate_scribble, rotate_gt)
+        (orig_gc, orig_knn, orig_scribble, orig_gt),
+        (crop_gc, crop_knn, crop_scribble, crop_gt),
+        (flip_gc, flip_knn, flip_scribble, flip_gt),
+        (rotate_gc, rotate_knn, rotate_scribble, rotate_gt)
     ]
 
     return augmented_quadruplets
@@ -408,19 +408,19 @@ def _create_data_paths(save_path):
     """
     Given a path, creates and returns child paths for rgb images grayscale images, scribbles and ground truths
     """
-    rgb_img_path = os.path.join(save_path, "images")
-    grayscale_img_path = os.path.join(save_path, "masks")
+    masks_gc_path = os.path.join(save_path, "masks_gc")
+    masks_knn_path = os.path.join(save_path, "masks_knn")
     scrib_path = os.path.join(save_path, "scribbles")
     gt_path = os.path.join(save_path, "ground_truth")
-    if not os.path.exists(rgb_img_path):
-        os.makedirs(rgb_img_path)
-    if not os.path.exists(grayscale_img_path):
-        os.makedirs(grayscale_img_path)
+    if not os.path.exists(masks_gc_path):
+        os.makedirs(masks_gc_path)
+    if not os.path.exists(masks_knn_path):
+        os.makedirs(masks_knn_path)
     if not os.path.exists(scrib_path):
         os.makedirs(scrib_path)
     if not os.path.exists(gt_path):
         os.makedirs(gt_path)
-    return rgb_img_path, grayscale_img_path, scrib_path, gt_path
+    return masks_gc_path, masks_knn_path, scrib_path, gt_path
 
 def pad_and_save_data(rgb_images, grayscale_images, scribbles, ground_truths, palette, save_path):
     """
@@ -446,20 +446,20 @@ def pad_and_return_data(rgb_images, grayscale_images, scribbles, ground_truths):
     ground_truths_padded = np.stack([_pad_to_512(gt) for gt in ground_truths], axis=0)
     return rgb_padded, gray_padded, scribbles_padded, ground_truths_padded
 
-def augment_and_save_data(rgb_images, grayscale_images, scribbles, ground_truths, palette, save_path):
+def augment_and_save_data(masks_gc, masks_knn, scribbles, ground_truths, palette, save_path):
     """
     Augments the training data according to the documentation and saves the resulting data
     """
-    rgb_img_path, grayscale_image_path, scrib_path, gt_path = _create_data_paths(save_path)
+    masks_gc_path, masks_knn_path, scrib_path, gt_path = _create_data_paths(save_path)
 
     # ensure we have equal amounts of everything
-    N_rgb_images, *_ = rgb_images.shape
-    N_grayscale_images, *_ = grayscale_images.shape
+    N_rgb_images, *_ = masks_gc.shape
+    N_grayscale_images, *_ = masks_knn.shape
     N_scribbles, *_ = scribbles.shape
     N_ground_truths, *_ = ground_truths.shape
     assert N_rgb_images == N_grayscale_images == N_scribbles == N_ground_truths
 
     next_id = 0 # image ID for saving
-    for (rgb_img, grayscale_img, scrib, gt) in zip(rgb_images, grayscale_images, scribbles, ground_truths):
+    for (rgb_img, grayscale_img, scrib, gt) in zip(masks_gc, masks_knn, scribbles, ground_truths):
         augmented_quadruplets = _augment_quadruplet_v1(rgb_img, grayscale_img, scrib, gt)
-        next_id = _save_quadruplets(augmented_quadruplets, rgb_img_path, grayscale_image_path, scrib_path, gt_path, palette, next_id)
+        next_id = _save_quadruplets(augmented_quadruplets, masks_gc_path, masks_knn_path, scrib_path, gt_path, palette, next_id)

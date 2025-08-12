@@ -38,7 +38,7 @@ def _get_filenames(folder_path, scribbles_dir):
     filenames = _get_file_names(sc_dir_path)
     return filenames
 
-def load_dataset_rgb_gray(
+def load_dataset_gray_twice(
     folder_path: str,
     rgb_images_dir: str,
     scribbles_dir: str,
@@ -63,7 +63,7 @@ def load_dataset_rgb_gray(
         palette (_type_): _description_
     """
     # Load RGB and scribbles
-    rgb_images = _load_images(folder_path, rgb_images_dir, "rgb")
+    rgb_images = _load_images(folder_path, rgb_images_dir, "grayscale")
     scribbles = _load_images(folder_path, scribbles_dir, "grayscale")
     filenames = _get_filenames(folder_path, scribbles_dir)
 
@@ -87,7 +87,7 @@ def load_dataset_rgb_gray(
     return rgb_images, scribbles, ground_truth, filenames, palette
 
 
-def load_dataset_grayscale_only(
+def load_dataset_gray_once(
         folder_path: str,
         grayscale_images_dir: str,
         scribbles_dir: str,

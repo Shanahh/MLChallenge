@@ -1,7 +1,7 @@
 import numpy as np
 
 from src.grabcut_processing.grabcut import grabcut_with_mask, before_grabcut_mask_preprocessing
-from src.knn_baseline.util import load_dataset_grayscale_only, load_dataset_rgb_gray, store_predictions, visualize
+from src.knn_baseline.util import load_dataset_gray_once, load_dataset_gray_twice, store_predictions, visualize
 
 SOURCE_PATH_TRAIN_RGB = "../../dataset/training"
 SOURCE_PATH_TRAIN_MASKS = "../../dataset/training_knn_k_53"
@@ -10,10 +10,10 @@ SOURCE_PATH_TARGET_MASKS = "../../dataset/training_gc"
 TEST_MODE = False
 i = 10
 
-rgb_images, scribbles, gt, fnames_train, palette = load_dataset_rgb_gray(
+rgb_images, scribbles, gt, fnames_train, palette = load_dataset_gray_twice(
     SOURCE_PATH_TRAIN_RGB, "images", "scribbles", ground_truth_dir="ground_truth"
 )
-knn_masks, *_ = load_dataset_grayscale_only(
+knn_masks, *_ = load_dataset_gray_once(
     SOURCE_PATH_TRAIN_MASKS, "scribbles", "scribbles", ground_truth_dir="ground_truth"
 )
 

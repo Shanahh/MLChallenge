@@ -6,7 +6,7 @@ from sklearn.multioutput import MultiOutputClassifier
 from sklearn.decomposition import PCA
 from scipy.ndimage import distance_transform_edt
 
-from src.knn_baseline.util import load_dataset_rgb_gray
+from src.knn_baseline.util import load_dataset_gray_twice
 from src.knn_baseline.util import store_predictions
 
 """
@@ -112,11 +112,11 @@ def decode_pred_picture(prediction_vec: np.ndarray, h = 375, w = 500) -> np.ndar
 
 # get data
 print("Loading data...")
-images_train, scrib_train, gt_train, fnames_train, palette = load_dataset_rgb_gray(
+images_train, scrib_train, gt_train, fnames_train, palette = load_dataset_gray_twice(
     "../../dataset/training", "images", "scribbles", "ground_truth"
 )
 
-images_test, scrib_test, fnames_test = load_dataset_rgb_gray(
+images_test, scrib_test, fnames_test = load_dataset_gray_twice(
     "../../dataset/test", "images", "scribbles"
 )
 

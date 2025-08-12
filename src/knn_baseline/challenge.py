@@ -1,7 +1,7 @@
 # Load important packages
 import numpy as np
 
-from util import load_dataset_rgb_gray
+from util import load_dataset_gray_twice
 from util import store_predictions
 from util import safe_segment_with_knn
 from util import visualize
@@ -18,7 +18,7 @@ print("Test mode active: " + str(test_mode))
 ######### Training dataset
 
 # Load training dataset
-images_train, scrib_train, gt_train, fnames_train, palette = load_dataset_rgb_gray(
+images_train, scrib_train, gt_train, fnames_train, palette = load_dataset_gray_twice(
     "../../dataset/training", "images", "scribbles", ground_truth_dir="ground_truth"
 )
 
@@ -72,7 +72,7 @@ if predict_on_train:
 ######### Test dataset
 if predict_on_test:
     # Load test dataset
-    images_test, scrib_test, fnames_test = load_dataset_rgb_gray(
+    images_test, scrib_test, fnames_test = load_dataset_gray_twice(
         "../../dataset/test", "images", "scribbles"
     )
 
