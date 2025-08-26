@@ -218,7 +218,7 @@ def predict_and_save(model, device, model_path, save_dir_path, data_loader, fnam
         for inputs, _ in data_loader:
             inputs = inputs.to(device)  # shape: [B, 5, H, W]
             outputs = model(inputs)  # shape: [B, 1, H, W]
-            predictions = model_output_to_mask(outputs)  # shape: [B, H, W]
+            predictions = output_to_mask_postprocess(outputs, inputs) if postprocess else model_output_to_mask(outputs)  # shape: [B, H, W]
             if remove_padding:
                 predictions = remove_padding_gt(predictions)
             # Save predictions (each sample)
