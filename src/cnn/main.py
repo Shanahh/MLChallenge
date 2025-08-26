@@ -16,8 +16,9 @@ CREATE_NEW_AUGMENTATIONS = False
 FIND_LR = False
 DO_TRAIN = False
 SAVE_STATISTICS_AND_MODEL = True
-MAKE_PREDICTIONS_ON_VAL = True
-MAKE_PREDICTIONS_ON_TEST = False
+MAKE_PREDICTIONS_ON_VAL = False
+MAKE_PREDICTIONS_ON_TEST = True
+DO_POSTPROCESSING = True
 
 # constants
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -172,7 +173,8 @@ if MAKE_PREDICTIONS_ON_VAL:
     predict_and_save(
         model, DEVICE, best_model_path,
         TARGET_PATH_PRED_VAL, val_loader, val_fnames, palette2,
-        remove_padding=False
+        remove_padding=False,
+        postprocess=DO_POSTPROCESSING
     )
 
 if MAKE_PREDICTIONS_ON_TEST:
@@ -180,5 +182,6 @@ if MAKE_PREDICTIONS_ON_TEST:
     predict_and_save(
         model, DEVICE, best_model_path,
         TARGET_PATH_PRED_TEST, test_loader, test_fnames, palette2,
-        remove_padding=True
+        remove_padding=True,
+        postprocess=DO_POSTPROCESSING
     )
