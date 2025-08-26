@@ -6,14 +6,14 @@ from torch.utils.data import DataLoader
 from src.knn_baseline.util import load_dataset_gray_twice, load_dataset_gray_once
 from src.cnn.data import train_test_split_dataset, augment_and_save_data, pad_and_save_data, \
     pad_and_return_data, SegmentationDatasetExt
-from src.cnn.losses import WeightedBCEDiceLoss
+from src.cnn.losses import WeightedBCEDiceLoss, BCELovaszLoss
 from src.cnn.lr_finder import LRFinder
-from src.cnn.models import UNet4
+from src.cnn.models import UNet4, UNet5
 from src.cnn.trainer import train_model, predict_and_save
 
 # steering cockpit
 CREATE_NEW_AUGMENTATIONS = False
-FIND_LR = False
+FIND_LR = True
 DO_TRAIN = True
 SAVE_STATISTICS_AND_MODEL = True
 MAKE_PREDICTIONS_ON_VAL = False
@@ -22,7 +22,7 @@ MAKE_PREDICTIONS_ON_TEST = False
 # constants
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 TARGET_PATH_PRED_VAL = "../../dataset/augmentations/validation/predictions"
-TARGET_PATH_PRED_TEST = "../../dataset/test_knn_k_53/predictions"
+TARGET_PATH_PRED_TEST = "../../dataset/test/predictions"
 SOURCE_PATH_TRAIN_MASKS_GC = "../../dataset/training_gc"
 SOURCE_PATH_TRAIN_MASKS_KNN = "../../dataset/training_knn_k_3"
 SOURCE_PATH_AUG_TRAIN = "../../dataset/augmentations/train"
@@ -31,8 +31,8 @@ SOURCE_PATH_TEST = "../../dataset/test_knn_k_53"
 
 HYPERPARAMS = {
     "regularization": {
-        "weight_decay": 5e-7, # 1e-6
-        "dropout_rate_model": 0.05
+        "weight_decay": 5e-6, # 1e-6
+        "dropout_rate_model": 0.1
     },
     "training": {
         "learning_rate": 3e-2,
@@ -87,7 +87,7 @@ test_img_gc_pad, test_img_knn_pad, test_scrib_pad, dummy_test_gt_pad = pad_and_r
 ######## create instances
 
 # model
-model = UNet4(
+model = UNet5(
     dropout_rate=HYPERPARAMS["regularization"]["dropout_rate_model"],
     apply_sigmoid=HYPERPARAMS["training"]["apply_sigmoid_in_model"]
 )
@@ -116,9 +116,8 @@ test_loader = DataLoader(
 )
 
 # loss and optimizing
-criterion = WeightedBCEDiceLoss(
+criterion = BCELovaszLoss(
     pos_weight=HYPERPARAMS["training"]["loss_pos_weight"],
-    dice_weight=HYPERPARAMS["training"]["loss_iou_weight"]
 )
 
 optimizer = torch.optim.Adam(
@@ -156,7 +155,7 @@ if FIND_LR:
     print("LR finder done. Inspect plot and set lr / max_lr accordingly before training.")
 
 # train model
-best_model_path = "../../models\model_2025-08-09_15-46-13.pth" # 78 avg. mIoU on validation set
+best_model_path = "../../models\model_2025-08-13_01-12-58.pth" # 78 avg. mIoU on validation set
 if DO_TRAIN:
     best_model_path = train_model(
         model, DEVICE, train_loader, val_loader,

@@ -84,6 +84,67 @@ class WeightedBCEDiceLoss(nn.Module):
 
         return bce_loss + self.dice_weight * dice_loss
 
+def lovasz_grad(gt_sorted):
+    """
+    Computes gradient of the Lovasz extension w.r.t sorted errors
+    gt_sorted: ground truth sorted by prediction errors
+    """
+    gts = gt_sorted.sum()
+    intersection = gts - gt_sorted.float().cumsum(0)
+    union = gts + (1 - gt_sorted).float().cumsum(0)
+    jaccard = 1. - intersection / union
+    if gt_sorted.numel() > 1:  # if not a single pixel
+        jaccard[1:] = jaccard[1:] - jaccard[:-1]
+    return jaccard
+
+def lovasz_hinge_flat(logits, targets):
+    """
+    Binary Lovasz hinge loss
+    logits: [P] variable, logits at each prediction (flattened)
+    targets: [P] binary ground truth labels (flattened)
+    """
+    if len(targets) == 0:
+        return logits.sum() * 0.
+    signs = 2. * targets.float() - 1.
+    errors = 1. - logits * signs
+    errors_sorted, perm = torch.sort(errors, dim=0, descending=True)
+    targets_sorted = targets[perm]
+    grad = lovasz_grad(targets_sorted)
+    loss = torch.dot(F.relu(errors_sorted), grad)
+    return loss
+
+def flatten_binary_scores(scores, labels):
+    """
+    Flattens predictions and labels, removes ignore label (-1)
+    """
+    scores = scores.view(-1)
+    labels = labels.view(-1)
+    valid = labels != -1
+    return scores[valid], labels[valid]
+
+class BCELovaszLoss(nn.Module):
+    def __init__(self, pos_weight=1.0, lovasz_weight=1.0):
+        """
+        BCE + Lovasz hinge loss
+        pos_weight: positive pixel weighting for BCE
+        lovasz_weight: weight factor for Lovasz term
+        """
+        super().__init__()
+        self.register_buffer("pos_weight_tensor", torch.tensor(pos_weight))
+        self.lovasz_weight = lovasz_weight
+
+    def forward(self, logits, targets):
+        # BCE with logits
+        bce_loss = F.binary_cross_entropy_with_logits(
+            logits, targets, pos_weight=self.pos_weight_tensor
+        )
+
+        # Lovasz hinge (direct IoU optimization)
+        logits_flat, targets_flat = flatten_binary_scores(logits.squeeze(1), targets.squeeze(1))
+        lovasz_loss = lovasz_hinge_flat(logits_flat, targets_flat)
+
+        return bce_loss + self.lovasz_weight * lovasz_loss
+
 class ProbWeightedBCEDiceLoss(nn.Module):
     def __init__(self, pos_weight=4.0, smooth=1e-6):
         """
