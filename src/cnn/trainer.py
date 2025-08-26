@@ -202,7 +202,7 @@ def _store_model(save_dir_path, model, timestamp):
 
     return full_path
 
-def predict_and_save(model, device, model_path, save_dir_path, data_loader, fnames, palette, remove_padding):
+def predict_and_save(model, device, model_path, save_dir_path, data_loader, fnames, palette, remove_padding, postprocess=True):
     """
     Makes predictions for the data in the data loader and stores them in a folder in the given path.
     """

@@ -12,11 +12,11 @@ from src.cnn.models import UNet4
 from src.cnn.trainer import train_model, predict_and_save
 
 # steering cockpit
-CREATE_NEW_AUGMENTATIONS = True
+CREATE_NEW_AUGMENTATIONS = False
 FIND_LR = False
-DO_TRAIN = True
+DO_TRAIN = False
 SAVE_STATISTICS_AND_MODEL = True
-MAKE_PREDICTIONS_ON_VAL = False
+MAKE_PREDICTIONS_ON_VAL = True
 MAKE_PREDICTIONS_ON_TEST = False
 
 # constants
@@ -24,7 +24,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 TARGET_PATH_PRED_VAL = "../../dataset/augmentations/validation/predictions"
 TARGET_PATH_PRED_TEST = "../../dataset/test_knn_k_53/predictions"
 SOURCE_PATH_TRAIN_RGB = "../../dataset/training"
-SOURCE_PATH_TRAIN_MASKS = "../../dataset/training_knn_k_53_gc"
+SOURCE_PATH_TRAIN_MASKS = "../../dataset/training_knn_k_53"
 SOURCE_PATH_AUG_TRAIN = "../../dataset/augmentations/train"
 SOURCE_PATH_AUG_VAL = "../../dataset/augmentations/validation"
 SOURCE_PATH_TEST = "../../dataset/test_knn_k_53"

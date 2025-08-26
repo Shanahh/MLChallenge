@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.grabcut_processing.grabcut import grabcut_with_mask, before_grabcut_mask_preprocessing
+from src.grabcut_processing.grabcut import grabcut_with_mask, prep_bin_mask_for_gc
 from src.knn_baseline.util import load_dataset_grayscale_only, load_dataset_rgb_gray, store_predictions, visualize
 
 SOURCE_PATH_TRAIN_RGB = "../../dataset/training"
@@ -19,7 +19,7 @@ knn_masks, *_ = load_dataset_grayscale_only(
 
 if not TEST_MODE:
     predictions_train = np.stack(
-        [grabcut_with_mask(rgb_img, before_grabcut_mask_preprocessing(knn_mask, scrib)) for rgb_img, knn_mask, scrib in zip(rgb_images, knn_masks, scribbles)],
+        [grabcut_with_mask(rgb_img, prep_bin_mask_for_gc(knn_mask, scrib)) for rgb_img, knn_mask, scrib in zip(rgb_images, knn_masks, scribbles)],
         axis=0,
     )
 
@@ -29,7 +29,7 @@ if not TEST_MODE:
 else:
     predictions_train = np.stack(
         #visualize(rgb_images[i], scribbles[i], gt[i], knn_masks[i])
-        [grabcut_with_mask(rgb_images[i], before_grabcut_mask_preprocessing(knn_masks[i], scribbles[i]))],
+        [grabcut_with_mask(rgb_images[i], prep_bin_mask_for_gc(knn_masks[i], scribbles[i]))],
         axis=0,
     )
 
