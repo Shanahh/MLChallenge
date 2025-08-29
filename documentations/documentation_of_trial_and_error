@@ -86,8 +86,13 @@ Fourth attempt:
 Instead of only passing the KNN segmentation mask and scribbles to the CNN as in the 3rd attempt, the entire picture is passed too
 No increment in IoU but possibility to extract more data from images
 
-Fifth attemp:
+Fifth attempt:
 
 Basically fourth attempt but before passing the KNN mask to the CNN, refine it via grab_cut algorithm
-Seemed promising at first but some pictures are messed up kind of badly s.t. network cant get past miou of 77
+Seemed promising at first but some pictures are messed up kind of badly s.t. network cant get past mean iou of 77
+
+Sixth attempt:
+
+Instead of passing the grabcut masks during training, grabcut is now used for postprocessing to increase robustness.
+The algorithm is told to keep pixels as they are where the CNN was very sure, but is allowed to potentially modify all others.
 
