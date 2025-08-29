@@ -6,8 +6,8 @@ from sklearn.multioutput import MultiOutputClassifier
 from sklearn.decomposition import PCA
 from scipy.ndimage import distance_transform_edt
 
-from util import load_dataset
-from util import store_predictions
+from src.knn_baseline.util import load_dataset_rgb_gray
+from src.knn_baseline.util import store_predictions
 
 """
 approach:
@@ -112,12 +112,12 @@ def decode_pred_picture(prediction_vec: np.ndarray, h = 375, w = 500) -> np.ndar
 
 # get data
 print("Loading data...")
-images_train, scrib_train, gt_train, fnames_train, palette = load_dataset(
-    "dataset/training", "images", "scribbles", "ground_truth"
+images_train, scrib_train, gt_train, fnames_train, palette = load_dataset_rgb_gray(
+    "../../dataset/training", "images", "scribbles", "ground_truth"
 )
 
-images_test, scrib_test, fnames_test = load_dataset(
-    "dataset/test", "images", "scribbles"
+images_test, scrib_test, fnames_test = load_dataset_rgb_gray(
+    "../../dataset/test", "images", "scribbles"
 )
 
 # construct feature and ground truth matrix
@@ -172,7 +172,7 @@ pred_train = np.stack(results_train, axis=0)
 
 print("Store training predictions...")
 store_predictions(
-    pred_train, "dataset/training/predictions", "first_attempt", fnames_test, palette
+    pred_train, "../../dataset/training/predictions", "first_attempt", fnames_train, palette
 )
 
 print("Make prediction on test data...")
@@ -187,7 +187,7 @@ for i in range(num_predictions):
 pred_test = np.stack(results_test, axis=0)
 print("Store test predictions...")
 store_predictions(
-    pred_test, "dataset/test/predictions", "first_attempt", fnames_test, palette
+    pred_test, "../../dataset/test/predictions", "first_attempt", fnames_test, palette
 )
 
 

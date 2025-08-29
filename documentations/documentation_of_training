@@ -1,0 +1,226 @@
+iou_plot_2025-07-27_16-59-06.pdf / loss_plot_2025-07-27_16-59-06.pdf:
+
+Unet4,
+HYPERPARAMS = {
+    "regularization": {
+        "weight_decay": 1e-6,          # e.g., 1e-6
+        "dropout_rate_model": 0.1
+    },
+    "training": {
+        "learning_rate": 2e-3,
+        "validation_set_size": 0.15,
+        "num_epochs": 60,
+        "scheduler_factor": 0.2,
+        "scheduler_patience": 10,
+        "batch_size": 8
+    }
+},
+WeightedBCEDiceLoss, pos weight 5
+
+Also tried already:
+
+Same config with "scheduler_factor": 0.5,
+        "scheduler_patience": 6, gets stuck at around 70:
+
+loss_plot_2025-07-28_23-23-55.pdf:
+
+Unet4,
+HYPERPARAMS = {
+    "regularization": {
+        "weight_decay": 1e-5,          # e.g., 1e-6
+        "dropout_rate_model": 0.1
+    },
+    "training": {
+        "learning_rate": 2e-3,
+        "validation_set_size": 0.15,
+        "num_epochs": 40,
+        "batch_size": 8
+    },
+    "scheduler": {
+        "one_cycle_scheduler": True,
+        "max_lr": 6e-3,
+        "scheduler_factor": 0.6, # only relevant if one_cycle_scheduler is False
+        "scheduler_patience": 10, # only relevant if one_cycle_scheduler is False
+    }
+},
+WeightedBCEDiceLoss, pos weight 5
+
+First time trying new scheduler, meh. Just cant get past mean IoU of 0.5 somehow
+
+iou_plot_2025-07-29_00-05-18.pdf:
+
+Unet3,
+HYPERPARAMS = {
+    "regularization": {
+        "weight_decay": 1e-5,          # e.g., 1e-6
+        "dropout_rate_model": 0.1
+    },
+    "training": {
+        "learning_rate": 2e-3,
+        "validation_set_size": 0.15,
+        "num_epochs": 40,
+        "batch_size": 8
+    },
+    "scheduler": {
+        "one_cycle_scheduler": True,
+        "max_lr": 6e-3,
+        "scheduler_factor": 0.6, # only relevant if one_cycle_scheduler is False
+        "scheduler_patience": 10, # only relevant if one_cycle_scheduler is False
+    }
+},
+WeightedBCEDiceLoss, pos weight 5
+
+loss_plot_2025-07-29_18-24-41.pdf:
+
+Unet4,
+HYPERPARAMS = {
+    "regularization": {
+        "weight_decay": 2e-5,          # e.g., 1e-6
+        "dropout_rate_model": 0.15
+    },
+    "training": {
+        "learning_rate": 6e-3,
+        "validation_set_size": 0.15,
+        "num_epochs": 60,
+        "batch_size": 8,
+        "loss_pos_weight": 1.0, # the higher, the more the model will be penalized for predicting too much background
+        "apply_sigmoid_in_model": False
+    },
+    "scheduler": {
+        "one_cycle_scheduler": False,
+        "max_lr": 6e-3, # only relevant if one_cycle_scheduler is True
+        "scheduler_factor": 0.2, # only relevant if one_cycle_scheduler is False
+        "scheduler_patience": 5, # only relevant if one_cycle_scheduler is False
+    }
+}
+WeightedBCEDiceLoss
+
+loss_plot_2025-07-29_18-43-12.pdf:
+
+Same as before without data augmentation
+
+loss_plot_2025-07-29_20-23-45.pdf:
+
+Unet4,
+HYPERPARAMS = {
+    "regularization": {
+        "weight_decay": 1e-6, # 1e-5,          # e.g., 1e-6
+        "dropout_rate_model": 0.05
+    },
+    "training": {
+        "learning_rate": 5e-3,
+        "validation_set_size": 0.15, # only relevant if CREATE_NEW_AUGMENTATIONS is true
+        "num_epochs": 50,
+        "batch_size": 8,
+        "loss_pos_weight": 2, # the higher, the more the model will be penalized for predicting too much background
+        "apply_sigmoid_in_model": False
+    },
+    "scheduler": {
+        "one_cycle_scheduler": False,
+        "max_lr": 6e-3, # only relevant if one_cycle_scheduler is True
+        "scheduler_factor": 0.2, # only relevant if one_cycle_scheduler is False
+        "scheduler_patience": 5, # only relevant if one_cycle_scheduler is False
+    }
+}
+WeightedBCEDiceLoss
+No Augmentation
+Got to 0.58 mean IoU after 50 epochs
+
+loss_plot_2025-07-29_20-34-16.pdf:
+
+Unet4,
+HYPERPARAMS = {
+    "regularization": {
+        "weight_decay": 1e-6, # 1e-5,          # e.g., 1e-6
+        "dropout_rate_model": 0.05
+    },
+    "training": {
+        "learning_rate": 3e-2,
+        "validation_set_size": 0.15, # only relevant if CREATE_NEW_AUGMENTATIONS is true
+        "num_epochs": 50,
+        "batch_size": 8,
+        "loss_pos_weight": 2, # the higher, the more the model will be penalized for predicting too much background
+        "apply_sigmoid_in_model": False
+    },
+    "scheduler": {
+        "one_cycle_scheduler": False,
+        "max_lr": 6e-3, # only relevant if one_cycle_scheduler is True
+        "scheduler_factor": 0.2, # only relevant if one_cycle_scheduler is False
+        "scheduler_patience": 5, # only relevant if one_cycle_scheduler is False
+    }
+}
+WeightedBCEJaccardLoss
+No Augmentation
+Got to 0.6 mean IoU after 50 epochs
+
+loss_plot_2025-07-30_01-49-01.pdf:
+
+Unet4,
+HYPERPARAMS = {
+    "regularization": {
+        "weight_decay": 1e-6, # 1e-6
+        "dropout_rate_model": 0.05
+    },
+    "training": {
+        "learning_rate": 2.5e-2,
+        "validation_set_size": 0.12, # only relevant if CREATE_NEW_AUGMENTATIONS is true
+        "num_epochs": 50,
+        "batch_size": 8,
+        "loss_pos_weight": 2, # the higher, the more the model will be penalized for predicting too much background
+        "loss_iou_weight": 1.0,
+        "apply_sigmoid_in_model": False # leave false unless loss function without sigmoid application
+    },
+    "scheduler": {
+        "one_cycle_scheduler": False,
+        "max_lr": 6e-3, # only relevant if one_cycle_scheduler is True
+        "scheduler_factor": 0.3, # only relevant if one_cycle_scheduler is False
+        "scheduler_patience": 5, # only relevant if one_cycle_scheduler is False
+    }
+}
+WeightedBCEDiceLoss,
+First time using knn ensemble approach
+input knn3 Set
+Basic Augmentations
+mean IoU 78
+
+For future approaches
+https://www.sciencedirect.com/science/article/abs/pii/S003132032200406X?utm_source=chatgpt.com
+https://arxiv.org/abs/2010.09713?utm_source=chatgpt.com
+
+loss_plot_2025-08-01_16-49-11.pdf
+
+Same as before,
+but input is knn53 set
+mean IoU 77
+
+Not a big difference but seems like less variance across validation sets (?)
+
+loss_plot_2025-08-09_15-46-13.pdf
+Unet4,
+HYPERPARAMS = {
+    "regularization": {
+        "weight_decay": 1e-6, # 1e-6
+        "dropout_rate_model": 0.05
+    },
+    "training": {
+        "learning_rate": 2.5e-2,
+        "validation_set_size": 0.12, # only relevant if CREATE_NEW_AUGMENTATIONS is true
+        "num_epochs": 50,
+        "batch_size": 8,
+        "loss_pos_weight": 2, # the higher, the more the model will be penalized for predicting too much background
+        "loss_iou_weight": 1.0,
+        "apply_sigmoid_in_model": False # leave false unless loss function without sigmoid application
+    },
+    "scheduler": {
+        "one_cycle_scheduler": False,
+        "max_lr": 6e-3, # only relevant if one_cycle_scheduler is True
+        "scheduler_factor": 0.3, # only relevant if one_cycle_scheduler is False
+        "scheduler_patience": 5, # only relevant if one_cycle_scheduler is False
+    }
+}
+WeightedBCEDiceLoss,
+Ensemble diesmal Bild + KNN Mask + Scribble für CNN als input, KNN 53 set
+mIoU 78.5, nicht viel gewonnen
+
+
+

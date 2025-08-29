@@ -38,21 +38,22 @@ def _get_filenames(folder_path, scribbles_dir):
     filenames = _get_file_names(sc_dir_path)
     return filenames
 
-def load_dataset(
+def load_dataset_rgb_gray(
     folder_path: str,
-    images_dir: str,
+    rgb_images_dir: str,
     scribbles_dir: str,
-    ground_truth_dir: str | None = None
+    grayscale_images_dir: str | None = None,
+    ground_truth_dir: str | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, Any]:
     """
     Load images, scribbles, and ground truth masks from a dataset folder.
     
     Args:
+        rgb_images_dir: folder name for rgb images.
         folder_path (str): Path to the dataset folder (e.g., 'dataset/training').
-        images_dir (str): folder name for images.
+        grayscale_images_dir (str): folder name for grayscale images.
         scribbles_dir (str): folder name for scribbles.
         ground_truth_dir (str): folder name for ground truth images.
-        
         
     Returns:
         images (np.ndarray): Array of shape (N, H, W, 3) with RGB images.
@@ -61,16 +62,65 @@ def load_dataset(
         filenames (list[str]): List of filenames for storing predictions
         palette (_type_): _description_
     """
-
-    images = _load_images(folder_path, images_dir, "RGB")
+    # Load RGB and scribbles
+    rgb_images = _load_images(folder_path, rgb_images_dir, "rgb")
     scribbles = _load_images(folder_path, scribbles_dir, "grayscale")
     filenames = _get_filenames(folder_path, scribbles_dir)
+
+    # Optionally load grayscale
+    grayscale_images = None
+    if grayscale_images_dir:
+        grayscale_images = _load_images(folder_path, grayscale_images_dir, "grayscale")
+
+    # If no ground truth, return accordingly
     if ground_truth_dir is None:
-        return images, scribbles, filenames
-    
+        if grayscale_images is not None:
+            return rgb_images, grayscale_images, scribbles, filenames
+        return rgb_images, scribbles, filenames
+
+    # If ground truth present
     ground_truth = _load_images(folder_path, ground_truth_dir, None)
     palette = _get_palette(folder_path, ground_truth_dir, filenames[0])
-    return images, scribbles, ground_truth, filenames, palette
+
+    if grayscale_images is not None:
+        return rgb_images, grayscale_images, scribbles, ground_truth, filenames, palette
+    return rgb_images, scribbles, ground_truth, filenames, palette
+
+
+def load_dataset_grayscale_only(
+        folder_path: str,
+        grayscale_images_dir: str,
+        scribbles_dir: str,
+        ground_truth_dir: str | None = None,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[str], Any]:
+    """
+    Load grayscale images, scribbles, and ground truth masks from a dataset folder.
+
+    Args:
+        folder_path (str): Path to the dataset folder (e.g., 'dataset/training').
+        grayscale_images_dir (str): folder name for grayscale images.
+        scribbles_dir (str): folder name for scribbles.
+        ground_truth_dir (str, optional): folder name for ground truth images.
+
+    Returns:
+        grayscale_images (np.ndarray): Array of shape (N, H, W) with grayscale images.
+        scribbles (np.ndarray): Array of shape (N, H, W) with scribble labels.
+        ground_truth (np.ndarray | None): Array of shape (N, H, W) with class labels if ground_truth_dir is provided, else None.
+        filenames (list[str]): List of filenames for storing predictions.
+        palette (optional): Palette info if ground_truth_dir provided, else None.
+    """
+    grayscale_images = _load_images(folder_path, grayscale_images_dir, "grayscale")
+    scribbles = _load_images(folder_path, scribbles_dir, "grayscale")
+    filenames = _get_filenames(folder_path, scribbles_dir)
+
+    ground_truth = None
+    palette = None
+    if ground_truth_dir is not None:
+        ground_truth = _load_images(folder_path, ground_truth_dir, None)
+        palette = _get_palette(folder_path, ground_truth_dir, filenames[0])
+
+    return grayscale_images, scribbles, ground_truth, filenames, palette
+
 
 def store_predictions(
     predictions: np.ndarray,
@@ -97,7 +147,7 @@ def store_predictions(
         pred_image.save(filepath)
 
 
-######### Methods for baseline model
+######### Methods for knn_baseline model
 
 def segment_with_knn(
     image: np.ndarray,
@@ -151,6 +201,13 @@ def segment_with_knn(
     # Reshape to (H, W)
     return predicted_mask.reshape(H, W)
 
+def safe_segment_with_knn(image, scribble, k):
+    """Adjust k if there are fewer labeled pixels than k"""
+    num_labeled = np.sum(scribble != 255)
+    if num_labeled < k:
+        print(f"Warning: Only {num_labeled} labeled pixels. Reducing k from {k} to {num_labeled}")
+        k = num_labeled if num_labeled > 0 else 1
+    return segment_with_knn(image, scribble, k=k)
 
 ######### Methods for visualization
 
