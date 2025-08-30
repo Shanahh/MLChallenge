@@ -75,7 +75,7 @@ def get_ious(y_true: np.ndarray, y_pred: np.ndarray):
     mean_iou_val = (obj_iou_val + bkg_iou_val) / 2.0
     return obj_iou_val, bkg_iou_val, mean_iou_val
 
-def model_output_to_mask(output_tensor, threshold=0.1, apply_sigmoid=True):
+def model_output_to_mask(output_tensor, threshold=0.5, apply_sigmoid=True):
     """
     Convert model output to binary mask (H x W numpy array)
     Differentiate between raw logit outputs and sigmoid outputs
