@@ -222,5 +222,37 @@ WeightedBCEDiceLoss,
 Ensemble diesmal Bild + KNN Mask + Scribble für CNN als input, KNN 53 set
 mIoU 78.5, nicht viel gewonnen
 
+loss_plot_2025-08-29_19-16-13.pdf:
+
+Unet4,
+HYPERPARAMS = {
+    "regularization": {
+        "weight_decay": 4e-7, # 1e-6
+        "dropout_rate_model": 0.07
+    },
+    "training": {
+        "learning_rate": 2.5e-2,
+        "validation_set_size": 0.06, # only relevant if CREATE_NEW_AUGMENTATIONS is true
+        "num_epochs": 120,
+        "batch_size": 8,
+        "loss_pos_weight": 2, # the higher, the more the model will be penalized for predicting too much background
+        "loss_iou_weight": 1.0,
+        "apply_sigmoid_in_model": False # leave false unless loss function without sigmoid application
+    },
+    "scheduler": {
+        "one_cycle_scheduler": False,
+        "max_lr": 6e-3, # only relevant if one_cycle_scheduler is True
+        "scheduler_factor": 0.4, # only relevant if one_cycle_scheduler is False
+        "scheduler_patience": 5, # only relevant if one_cycle_scheduler is False
+    }
+}
+WeightedBCEDiceLoss,
+Ensemble diesmal Bild + KNN Mask + Scribble für CNN als input, KNN 3 set
+
+mIoU 79.3
+kleines validation set
+
+
+
 
 
